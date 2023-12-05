@@ -96,18 +96,25 @@ const getColumns = ({
 };
 
 // "/^t.*$/" or "^t.*$" => new RegExp
+// 定义一个函数，将字符串转换为正则表达式
 const strToRegExp = (regStr: string) => {
+  // 初始化一个空的正则表达式
   let regexp = new RegExp('');
   try {
+    // 使用正则表达式匹配字符串中的正则表达式部分和修饰符部分
     const regParts = regStr.match(new RegExp('^/(.*?)/([gims]*)$'));
     if (regParts) {
+      // 如果匹配成功，则使用提取出的正则表达式和修饰符创建新的正则表达式
       regexp = new RegExp(regParts[1], regParts[2]);
     } else {
+      // 如果匹配失败，则直接使用原始字符串创建正则表达式
       regexp = new RegExp(regStr);
     }
   } catch (error) {
+    // 捕获可能的错误，并打印错误信息
     console.error(error);
   }
+  // 返回转换后的正则表达式
   return regexp;
 };
 export default () => {
@@ -124,20 +131,29 @@ export default () => {
       setUNetwork([...uNetwork]);
     }
   };
-  useEffect(() => {
+useEffect(() => {
+    // 当 recording 状态发生变化时执行
     if (chrome.devtools) {
       if (recording) {
+        // 设置 requestFinishedRef.current 为 setUNetworkData 函数
         requestFinishedRef.current = setUNetworkData;
+        // 向 chrome.devtools.network 注册 requestFinished 事件监听器
         chrome.devtools.network.onRequestFinished.addListener(requestFinishedRef.current);
       } else {
+        // 从 chrome.devtools.network 移除 requestFinished 事件监听器
         chrome.devtools.network.onRequestFinished.removeListener(requestFinishedRef.current);
       }
     }
   }, [recording]);
+
   useEffect(() => {
+    // 当 uNetwork 数组发生变化且 recording 为 true 且 uNetwork 长度小于 1 时执行
     if (chrome.devtools && recording && uNetwork.length < 1) {
+      // 从 chrome.devtools.network 移除 requestFinished 事件监听器
       chrome.devtools.network.onRequestFinished.removeListener(requestFinishedRef.current);
+      // 设置 requestFinishedRef.current 为 setUNetworkData 函数
       requestFinishedRef.current = setUNetworkData;
+      // 向 chrome.devtools.network 注册 requestFinished 事件监听器
       chrome.devtools.network.onRequestFinished.addListener(requestFinishedRef.current);
     }
   }, [uNetwork]);
@@ -151,15 +167,22 @@ export default () => {
       }
     });
   });
+/**
+   * 当点击添加拦截器时的回调函数
+   * @param record - 记录对象，包含请求信息和获取内容的方法
+   */
   const onAddInterceptorClick = (
     record: {
       request: { url: string; };
       getContent: (arg0: (content: any) => void) => void;
     }
   ) => {
+    // 获取请求的URL，并去除查询参数
     const requestUrl = record.request.url.split('?')[0];
+    // 从URL中匹配出主机名之后的路径
     const matchUrl = requestUrl.match('(?<=//.*/).+');
     if (record.getContent) {
+      // 如果存在获取内容的方法，则调用该方法获取内容，并处理添加拦截器的逻辑
       record.getContent((content) => {
         handleAddInterceptor({
           request: matchUrl && matchUrl[0] || '',
@@ -167,20 +190,27 @@ export default () => {
         });
       });
     } else {
+      // 如果不存在获取内容的方法，则直接处理添加拦截器的逻辑
       handleAddInterceptor({
         request: matchUrl && matchUrl[0] || '',
         responseText: ''
       });
     }
   };
+// 定义一个异步函数，用于处理添加拦截器的操作
   const handleAddInterceptor = async (
     { request, responseText }: { request: string, responseText: string }
   ) => {
     try {
+      // 从Chrome本地存储中获取ajaxDataList和iframeVisible的值，如果没有则赋值为空数组和undefined
       const { ajaxDataList = [], iframeVisible }: AddInterceptorParams|any = await getChromeLocalStorage(['iframeVisible', 'ajaxDataList']);
+      // 将ajaxDataList中的每个item的interfaceList取出来，如果不存在则赋值为空数组
       const interfaceList = ajaxDataList.flatMap((item: { interfaceList: DefaultInterfaceObject[]; }) => item.interfaceList || []);
+      // 判断interfaceList中是否存在与当前请求相同的request，如果存在则返回true，否则返回false
       const hasIntercepted = interfaceList.some((v: { request: string | null; }) => v.request === request);
+      // 如果已经拦截过该请求
       if (hasIntercepted) {
+        // 弹出确认框，询问是否添加另一个拦截器
         const confirmed = await new Promise((resolve) => {
           Modal.confirm({
             title: 'Request Already Intercepted',
@@ -189,13 +219,17 @@ export default () => {
             onCancel: () => resolve(false),
           });
         });
+        // 如果确认添加另一个拦截器
         if (confirmed) {
+          // 调用addInterceptorIfNeeded函数，传入相关参数
           await addInterceptorIfNeeded({ ajaxDataList, iframeVisible, request, responseText });
         }
       } else {
+        // 调用addInterceptorIfNeeded函数，传入相关参数
         await addInterceptorIfNeeded({ ajaxDataList, iframeVisible, request, responseText });
       }
     } catch(error) {
+      // 捕获错误并打印到控制台
       console.error(error);
     }
   };
@@ -288,7 +322,7 @@ export default () => {
         type="text"
         shape="circle"
         danger={recording}
-        title={recording ? 'Stop recording network log' : 'Record network log'}
+        title={recording ? '停止录制网络请求' : '开始录制网络请求'}
         icon={recording ? <PauseCircleFilled/> : <PlayCircleTwoTone/>}
         onClick={() => setRecording(!recording)}
       />
@@ -316,8 +350,8 @@ export default () => {
       estimatedRowHeight={24}
       locale={{
         emptyText: <div style={{ textAlign: 'center' }}>
-          <p>Recording network activity... </p>
-          <p>Click Record, and then Perform a request or hit <strong>⌘ R</strong> to record the load.</p>
+          <p>提示正在记录网络活动 </p>
+          <p>提示点击记录按钮，并执行请求或按下 <strong>Ctrl + R</strong> 来记录加载</p>
         </div>
       }}
     />
