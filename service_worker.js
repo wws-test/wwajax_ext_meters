@@ -36,6 +36,6 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('%c Ajax Tools onInstalled', `color: #3aa757`);
+  console.log('%c tester Tools onInstalled', `color: #3aa757`);
 });
 

@@ -125,18 +125,30 @@ export default () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currRecord, setCurrRecord] = useState(null);
 
-  const setUNetworkData = function (request:any) {
-    if (['fetch', 'xhr'].includes(request._resourceType)) {
-      uNetwork.push(request);
-      setUNetwork([...uNetwork]);
+
+  // 定义一个名为setUNetworkData的函数，参数为request
+  const uNetworkSet = new Set(); // Create a Set to store unique URLs
+
+  const setUNetworkData = function (entry:any) {
+    if (['fetch', 'xhr'].includes(entry._resourceType)) {
+      console.log('request.url', entry.request.url);
+      const url = new URL(entry.request.url);
+      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json')) {
+        if (!uNetworkSet.has(entry.request.url)) { // Check if the URL is already in the Set
+          uNetworkSet.add(entry.request.url); // If not, add it to the Set
+          uNetwork.push(entry);
+          setUNetwork([...uNetwork]);
+        }
+      }
     }
   };
-useEffect(() => {
+  useEffect(() => {
     // 当 recording 状态发生变化时执行
     if (chrome.devtools) {
       if (recording) {
         // 设置 requestFinishedRef.current 为 setUNetworkData 函数
         requestFinishedRef.current = setUNetworkData;
+        console.log('requestFinishedRef.current', requestFinishedRef.current);
         // 向 chrome.devtools.network 注册 requestFinished 事件监听器
         chrome.devtools.network.onRequestFinished.addListener(requestFinishedRef.current);
       } else {
@@ -181,8 +193,9 @@ useEffect(() => {
     const requestUrl = record.request.url.split('?')[0];
     // 从URL中匹配出主机名之后的路径
     const matchUrl = requestUrl.match('(?<=//.*/).+');
+    console.log('requestUrl:', requestUrl); // 输出requestUrl的值
+    console.log('matchUrl:', matchUrl && matchUrl[0]); // 输出matchUrl的值
     if (record.getContent) {
-      // 如果存在获取内容的方法，则调用该方法获取内容，并处理添加拦截器的逻辑
       record.getContent((content) => {
         handleAddInterceptor({
           request: matchUrl && matchUrl[0] || '',
@@ -197,7 +210,7 @@ useEffect(() => {
       });
     }
   };
-// 定义一个异步函数，用于处理添加拦截器的操作
+  // 定义一个异步函数，用于处理添加拦截器的操作
   const handleAddInterceptor = async (
     { request, responseText }: { request: string, responseText: string }
   ) => {
@@ -213,8 +226,8 @@ useEffect(() => {
         // 弹出确认框，询问是否添加另一个拦截器
         const confirmed = await new Promise((resolve) => {
           Modal.confirm({
-            title: 'Request Already Intercepted',
-            content: 'This request has already been intercepted. Do you want to add another interceptor?',
+            title: '请求已被截获',
+            content: '此请求已被截获。是否要添加另一个拦截器？',
             onOk: () => resolve(true),
             onCancel: () => resolve(false),
           });
@@ -289,6 +302,13 @@ useEffect(() => {
       );
     }
   };
+/**
+   * 添加拦截器
+   * @param ajaxDataList - AJAX数据列表
+   * @param groupIndex - 分组索引，默认为0
+   * @param request - 请求对象
+   * @param responseText - 响应文本
+   */
   const addInterceptor = (
     { ajaxDataList, groupIndex = 0, request, responseText }: AddInterceptorParams
   ) => {
@@ -308,8 +328,11 @@ useEffect(() => {
       ajaxDataList
     });
   };
+  // 定义一个名为onRequestUrlClick的函数，参数为record，类型为React.SetStateAction<null>
   const onRequestUrlClick = (record: React.SetStateAction<null>) => {
+    // 设置当前记录为传入的record
     setCurrRecord(record);
+    // 打开抽屉
     setDrawerOpen(true);
   };
   const columns = getColumns({
