@@ -133,7 +133,7 @@ export default () => {
     if (['fetch', 'xhr'].includes(entry._resourceType)) {
       console.log('request.url', entry.request.url);
       const url = new URL(entry.request.url);
-      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json')) {
+      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png')) {
         if (!uNetworkSet.has(entry.request.url)) { // Check if the URL is already in the Set
           uNetworkSet.add(entry.request.url); // If not, add it to the Set
           uNetwork.push(entry);
@@ -179,7 +179,7 @@ export default () => {
       }
     });
   });
-/**
+  /**
    * 当点击添加拦截器时的回调函数
    * @param record - 记录对象，包含请求信息和获取内容的方法
    */
@@ -302,13 +302,13 @@ export default () => {
       );
     }
   };
-/**
-   * 添加拦截器
-   * @param ajaxDataList - AJAX数据列表
-   * @param groupIndex - 分组索引，默认为0
-   * @param request - 请求对象
-   * @param responseText - 响应文本
-   */
+  /**
+     * 添加拦截器
+     * @param ajaxDataList - AJAX数据列表
+     * @param groupIndex - 分组索引，默认为0
+     * @param request - 请求对象
+     * @param responseText - 响应文本
+     */
   const addInterceptor = (
     { ajaxDataList, groupIndex = 0, request, responseText }: AddInterceptorParams
   ) => {
@@ -357,7 +357,7 @@ export default () => {
         onClick={() => setUNetwork([])}
       />
       <Input
-        placeholder="Filter RegExp"
+        placeholder="筛选请求"
         size="small"
         style={{ width: 160, marginLeft: 16 }}
         onChange={(e) => setFilterKey(e.target.value)}

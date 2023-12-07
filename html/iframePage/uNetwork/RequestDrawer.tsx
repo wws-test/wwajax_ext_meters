@@ -15,7 +15,7 @@ const setHeaders = (s: any, accessKey: string, secretKey: string): any => {
   const timeStamp = new Date().getTime();
   const combox_key = accessKey + '|' + uuidv4() + '|' + timeStamp;
   const signature = aesEncrypt(combox_key, secretKey, accessKey);
-  console.log(signature);
+  // console.log(signature);
   const header = {
     'User-Agent': 'python-requests/2.25.1',
     'Content-Type': 'application/json',
@@ -27,6 +27,39 @@ const setHeaders = (s: any, accessKey: string, secretKey: string): any => {
   s.headers = { ...s.headers, ...header };
   return s;
 };
+function getDataFromIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('myDatabase', 1);
+
+    request.onsuccess = function(event) {
+      // @ts-ignore
+      const db = event.target.result;
+      const transaction = db.transaction('myObjectStore', 'readonly');
+      const objectStore = transaction.objectStore('myObjectStore');
+
+      const getRequest = objectStore.get('projectid');
+
+      getRequest.onsuccess = function(event: { target: { result: any; }; }) {
+        const data = event.target.result;
+        if (data) {
+          resolve(data);
+        } else {
+          reject(new Error('Value not found in IndexedDB'));
+        }
+      };
+
+      // @ts-ignore
+      transaction.oncomplete = function(event) {
+        db.close();
+      };
+    };
+
+    request.onerror = function(event) {
+      reject(new Error('Error opening IndexedDB'));
+    };
+  });
+}
+
 interface RequestDrawerProps {
   drawerOpen: boolean;
   record: any;
@@ -164,30 +197,39 @@ export default (props: RequestDrawerProps) => {
   };
   const CustomPayload = (props: { path: string }) => {
     const { path } = props;
+    const url = new URL(path);
+    console.log('path', path, url.pathname);
     const [data, setData] = useState<any>(null);
     let s = { headers: {} }; // 创建一个空的请求头对象
-    s = setHeaders(s, 'KUPXCvnjCna9ANc9', 'ptylbHok5nZSGexx'); // 设置请求头
+    s = setHeaders(s, 'TkA1lh4Mqc4J19Fg', 'BWtRQJgZswbGOMi5'); // 设置请求头
     useEffect(() => {
       // 异步操作
       const fetchData = async () => {
-        const requestBody = {
-          name: path,
-          projectId: ''
-        };
-        const apiUrl = `http://10.50.2.3:8081/api/definition/queryCaseInfo1`;
-        try {
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            body: JSON.stringify(requestBody),
-            headers: Object.assign({}, s.headers),
-          });
-          console.log(' response', response);
-          const jsonData = await response.json();
-          console.log(' jsonData', jsonData);
-          setData(jsonData);
-        } catch (error) {
-          console.error(error);
-        }
+        getDataFromIndexedDB().then(async data => {
+          console.log('Data retrieved from IndexedDB:', data);
+          const requestBody = {
+            name: url.pathname,
+            projectId: ''
+          };
+          // @ts-ignore
+          requestBody.projectId = data.value;
+          console.log('requestBody', requestBody);
+          const apiUrl = `http://10.50.3.224:8081/api/definition/queryCaseInfo1`;
+          try {
+            const response = await fetch(apiUrl, {
+              method: 'POST',
+              body: JSON.stringify(requestBody),
+              headers: Object.assign({}, s.headers),
+            });
+            console.log(' response', response);
+            const jsonData = await response.json();
+            console.log(' jsonData', jsonData);
+            setData(jsonData);
+          } catch (error) {
+            console.error(error);
+          }
+        });
+
       };
 
       fetchData();
@@ -230,24 +272,24 @@ export default (props: RequestDrawerProps) => {
       }}
       items={[
         {
-          label: `Headers`,
+          label: `请求头`,
           key: '1',
           children: <Wrapper><Headers/></Wrapper>,
         },
         {
-          label: `Payload`,
+          label: `请求体`,
           key: '2',
           children: <Wrapper><Payload/></Wrapper>,
         },
         {
-          label: `Response`,
+          label: `响应体`,
           key: '3',
           children: <Wrapper><Response/></Wrapper>,
         },
         {
-          label: `Custom Payload`,
+          label: `接口文档`,
           key: '4',
-          children: <Wrapper><CustomPayload path={ record.request.url.pathname }/></Wrapper>,
+          children: <Wrapper><CustomPayload path={ record.request.url }/></Wrapper>,
         }
       ]}
     />
