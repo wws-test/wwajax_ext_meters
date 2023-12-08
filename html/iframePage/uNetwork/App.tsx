@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 // @ts-ignore
 import { VTablePro } from 'virtualized-table';
 import { Button, Input, Modal, Radio, Space } from 'antd';
-import { FilterOutlined, PauseCircleFilled, PlayCircleTwoTone, StopOutlined } from '@ant-design/icons';
+import { BuildFilled, FilterOutlined, PauseCircleFilled, PlayCircleTwoTone, StopOutlined } from '@ant-design/icons';
 import 'antd/dist/antd.css';
 import './App.css';
 import RequestDrawer from './RequestDrawer';
 import { defaultInterface, AjaxDataListObject, DefaultInterfaceObject } from '../common/value';
+import * as CryptoJS from 'crypto-js';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddInterceptorParams {
   ajaxDataList: AjaxDataListObject[],
@@ -14,6 +16,61 @@ interface AddInterceptorParams {
   groupIndex?: number,
   request: string,
   responseText: string
+}
+
+const aesEncrypt = (text: string, secretKey: string, iv: string): string => {
+  // @ts-ignore
+  const encrypted = CryptoJS.AES.encrypt(text, secretKey, { iv: iv });
+  return encrypted.toString();
+};
+
+const setHeaders = (s: any, accessKey: string, secretKey: string): any => {
+  const timeStamp = new Date().getTime();
+  const combox_key = accessKey + '|' + uuidv4() + '|' + timeStamp;
+  const signature = aesEncrypt(combox_key, secretKey, accessKey);
+  // console.log(signature);
+  const header = {
+    'User-Agent': 'python-requests/2.25.1',
+    'Content-Type': 'application/json',
+    'ACCEPT': 'application/json',
+    'Accept-Encoding': 'gzip, deflate',
+    'accessKey': accessKey,
+    'signature': signature
+  };
+  s.headers = { ...s.headers, ...header };
+  return s;
+};
+function getDataFromIndexedDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('myDatabase', 1);
+
+    request.onsuccess = function(event) {
+      // @ts-ignore
+      const db = event.target.result;
+      const transaction = db.transaction('myObjectStore', 'readonly');
+      const objectStore = transaction.objectStore('myObjectStore');
+
+      const getRequest = objectStore.get('projectid');
+
+      getRequest.onsuccess = function(event: { target: { result: any; }; }) {
+        const data = event.target.result;
+        if (data) {
+          resolve(data);
+        } else {
+          reject(new Error('Value not found in IndexedDB'));
+        }
+      };
+
+      // @ts-ignore
+      transaction.oncomplete = function(event) {
+        db.close();
+      };
+    };
+
+    request.onerror = function(event) {
+      reject(new Error('Error opening IndexedDB'));
+    };
+  });
 }
 
 const getColumns = ({
@@ -124,7 +181,10 @@ export default () => {
   const [filterKey, setFilterKey] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currRecord, setCurrRecord] = useState(null);
-
+  const [highlightedRows, setHighlightedRows] = useState([]);
+  const handleHighlightRows = (comparedRows: React.SetStateAction<never[]>) => {
+    setHighlightedRows(comparedRows);
+  };
 
   // 定义一个名为setUNetworkData的函数，参数为request
   const uNetworkSet = new Set(); // Create a Set to store unique URLs
@@ -179,6 +239,54 @@ export default () => {
       }
     });
   });
+  const compare = (dataToCompare: any[]) => {
+    let s = { headers: {} }; // 创建一个空的请求头对象
+    s = setHeaders(s, 'TkA1lh4Mqc4J19Fg', 'BWtRQJgZswbGOMi5'); // 设置请求头
+    const fetchData = async () => {
+      getDataFromIndexedDB().then(async data => {
+        const uNetworkList = Array.from(uNetwork).map(entry => {
+          // @ts-ignore
+          const url = new URL(entry.request.url);
+          return url.pathname;
+        });
+        console.log('uNetworkList', uNetworkList);
+        const requestBody = {
+          paths: uNetworkList,
+          projectId: ''
+        };
+        // @ts-ignore
+        requestBody.projectId = data.value;
+        console.log('requestBody', requestBody);
+        const apiUrl = `http://10.50.3.224:8081/project/addRedisInterface`;
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            body: JSON.stringify(requestBody),
+            headers: Object.assign({}, s.headers),
+          });
+          const jsonData = await  response.json();
+          console.log('jsonData', jsonData);
+          // 从返回的jsonData中提取data数组
+          const dataToCompare = jsonData.data;
+          console.log('dataToCompare', dataToCompare);
+
+          // 循环查找在uNetworkList中的序列号
+          const comparedRows = dataToCompare.map((item: string) => {
+            const index = uNetworkList.findIndex((path) => path === item);
+            return index;
+          });
+          console.log('comparedRows', comparedRows);
+          // 将索引回填到highlightedRows中
+          handleHighlightRows(comparedRows);
+
+        } catch (error) {
+          console.error(error);
+        }
+      });
+
+    };
+    fetchData();
+  };
   /**
    * 当点击添加拦截器时的回调函数
    * @param record - 记录对象，包含请求信息和获取内容的方法
@@ -352,9 +460,15 @@ export default () => {
       <Button
         type="text"
         shape="circle"
-        title="Clear"
+        title="清除记录"
         icon={<StopOutlined/>}
         onClick={() => setUNetwork([])}
+      />
+      <Button
+        type="text"
+        title="一键对比"
+        icon={<BuildFilled />}
+        onClick={() => compare([])}
       />
       <Input
         placeholder="筛选请求"
