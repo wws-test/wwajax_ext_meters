@@ -73,84 +73,6 @@ function getDataFromIndexedDB() {
   });
 }
 
-const getColumns = ({
-  onAddInterceptorClick,
-  onRequestUrlClick
-} : {
-  onAddInterceptorClick: (record: any) => void,
-  onRequestUrlClick: (record: any) => void,
-}) => {
-  return [
-    {
-      title: 'Index',
-      dataIndex: 'Index',
-      width: 60,
-      align: 'center',
-      render: (value: any, record: any, index: any, realIndex: number) => realIndex + 1,
-    },
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      width: 200,
-      ellipsis: true,
-      style: { padding: '0 4px' },
-      render: (value: any, record: { request: { url: string }; }) => {
-        const name = record.request.url.match('[^/]+(?!.*/)');
-        return <span
-          className="ajax-tools-devtools-text-btn"
-          title={record.request.url}
-          onClick={() => onRequestUrlClick(record)}
-        >
-          {name && name[0]}
-        </span>;
-      }
-    },
-    {
-      title: 'Method',
-      dataIndex: 'method',
-      width: 60,
-      align: 'center',
-      render: (value: any, record: { request: { method: string }; }) => record.request.method,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      width: 60,
-      align: 'center',
-      render: (value: any, record: { response: { status: string }; }) => record.response.status,
-    },
-    {
-      title: 'Type',
-      dataIndex: 'type',
-      width: 60,
-      align: 'center',
-      render: (value: any, record: { _resourceType: string; }) => record._resourceType,
-    },
-    // { title: 'Initiator', dataIndex: 'initiator', width: 100 },
-    // {
-    //   title: 'Size',
-    //   dataIndex: 'size',
-    //   width: 60,
-    //   render: (value, record) => record.response.bodySize,
-    // },
-    // { title: 'Time', dataIndex: 'time', width: 60 },
-    {
-      title: 'Action',
-      dataIndex: 'action',
-      width: 60,
-      align: 'center',
-      render: (value: any, record: any) => {
-        return <>
-          <FilterOutlined
-            className="ajax-tools-devtools-text-btn"
-            title="Add request to be intercepted"
-            onClick={() => onAddInterceptorClick(record)}
-          />
-        </>;
-      }
-    }
-  ];
-};
 
 // "/^t.*$/" or "^t.*$" => new RegExp
 // 定义一个函数，将字符串转换为正则表达式
@@ -181,17 +103,96 @@ export default () => {
   const [filterKey, setFilterKey] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currRecord, setCurrRecord] = useState(null);
-  const [highlightedRows, setHighlightedRows] = useState([]);
-  const handleHighlightRows = (comparedRows: React.SetStateAction<never[]>) => {
-    setHighlightedRows(comparedRows);
+  const [comparedRows, setComparedRows] = useState([]);
+
+  const getColumns = ({
+    onAddInterceptorClick,
+    onRequestUrlClick
+  } : {
+    onAddInterceptorClick: (record: any) => void,
+    onRequestUrlClick: (record: any) => void,
+  }) => {
+    return [
+      {
+        title: 'Index',
+        dataIndex: 'Index',
+        width: 60,
+        align: 'center',
+        render: (value: any, record: any, index: any, realIndex: number) => realIndex + 1,
+      },
+      {
+        title: 'Name',
+        dataIndex: 'name',
+        width: 200,
+        ellipsis: true,
+        style: { padding: '0 4px' },
+        render: (value: any, record: { request: { url: string }; }) => {
+          const name = record.request.url.match('[^/]+(?!.*/)');
+          return <span
+            className="ajax-tools-devtools-text-btn"
+            title={record.request.url}
+            onClick={() => onRequestUrlClick(record)}
+          >
+            {name && name[0]}
+          </span>;
+        }
+      },
+      {
+        title: 'Method',
+        dataIndex: 'method',
+        width: 60,
+        align: 'center',
+        render: (value: any, record: { request: { method: string }; }) => record.request.method,
+      },
+      {
+        title: 'Status',
+        dataIndex: 'status',
+        width: 60,
+        align: 'center',
+        render: (value: any, record: { response: { status: string }; }) => record.response.status,
+      },
+      {
+        title: 'metersphere',
+        dataIndex: 'metersphere',
+        width: 60,
+        align: 'center',
+        render: (text: any, record: any, index: any) => {
+          // @ts-ignore
+          return comparedRows.includes(index) ? 'miss' : ''; }
+      },
+      // { title: 'Initiator', dataIndex: 'initiator', width: 100 },
+      // {
+      //   title: 'Size',
+      //   dataIndex: 'size',
+      //   width: 60,
+      //   render: (value, record) => record.response.bodySize,
+      // },
+      // { title: 'Time', dataIndex: 'time', width: 60 },
+      {
+        title: 'Action',
+        dataIndex: 'action',
+        width: 60,
+        align: 'center',
+        render: (value: any, record: any) => {
+          return <>
+            <FilterOutlined
+              className="ajax-tools-devtools-text-btn"
+              title="Add request to be intercepted"
+              onClick={() => onAddInterceptorClick(record)}
+            />
+          </>;
+        }
+      }
+    ];
   };
+  const filteredDataSource = uNetwork
+    .filter((v: { request: { url: string; }; }) => v.request.url.match(strToRegExp(filterKey)));
 
   // 定义一个名为setUNetworkData的函数，参数为request
   const uNetworkSet = new Set(); // Create a Set to store unique URLs
 
   const setUNetworkData = function (entry:any) {
     if (['fetch', 'xhr'].includes(entry._resourceType)) {
-      console.log('request.url', entry.request.url);
       const url = new URL(entry.request.url);
       if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png')) {
         if (!uNetworkSet.has(entry.request.url)) { // Check if the URL is already in the Set
@@ -239,7 +240,7 @@ export default () => {
       }
     });
   });
-  const compare = (dataToCompare: any[]) => {
+  const compare = () => {
     let s = { headers: {} }; // 创建一个空的请求头对象
     s = setHeaders(s, 'TkA1lh4Mqc4J19Fg', 'BWtRQJgZswbGOMi5'); // 设置请求头
     const fetchData = async () => {
@@ -271,14 +272,12 @@ export default () => {
           console.log('dataToCompare', dataToCompare);
 
           // 循环查找在uNetworkList中的序列号
-          const comparedRows = dataToCompare.map((item: string) => {
+          const comparedRow = dataToCompare.map((item: string) => {
             const index = uNetworkList.findIndex((path) => path === item);
             return index;
           });
+          setComparedRows(comparedRow);
           console.log('comparedRows', comparedRows);
-          // 将索引回填到highlightedRows中
-          handleHighlightRows(comparedRows);
-
         } catch (error) {
           console.error(error);
         }
@@ -468,7 +467,7 @@ export default () => {
         type="text"
         title="一键对比"
         icon={<BuildFilled />}
-        onClick={() => compare([])}
+        onClick={() => compare()}
       />
       <Input
         placeholder="筛选请求"
@@ -481,7 +480,7 @@ export default () => {
       bordered
       headerNotSticky
       columns={columns}
-      dataSource={uNetwork.filter((v: { request: { url: string; }; }) => v.request.url.match(strToRegExp(filterKey)))}
+      dataSource={filteredDataSource}
       visibleHeight={window.innerHeight - 50}
       rowHeight={24}
       estimatedRowHeight={24}
@@ -502,4 +501,3 @@ export default () => {
     }
   </div>;
 };
-
