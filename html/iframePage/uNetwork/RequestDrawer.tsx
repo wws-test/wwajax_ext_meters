@@ -1,4 +1,4 @@
-import { Divider, Drawer, Tabs } from 'antd';
+import { Button, Divider, Drawer, Tabs } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { FilterOutlined } from '@ant-design/icons';
 import './RequestDrawer.css';
@@ -262,11 +262,22 @@ export default (props: RequestDrawerProps) => {
       size="small"
       // onChange={onChange}
       tabBarExtraContent={{
-        right: <FilterOutlined
-          className="ajax-tools-devtools-text-btn"
-          title="Add requests to be intercepted"
-          onClick={() => onAddInterceptorClick(record)}
-        />
+        right: (
+          <>
+            <FilterOutlined
+              className="ajax-tools-devtools-text-btn"
+              title="Add requests to be intercepted"
+              onClick={() => onAddInterceptorClick(record)}
+            />
+            <div style={{ width: '8px' }}></div> {/* 使用CSS样式设置间距 */}
+            <Button
+              type="primary"
+              onClick={() => onAddInterceptorClick(record)}
+            >
+                提交
+            </Button>
+          </>
+        )
       }}
       items={[
         {
