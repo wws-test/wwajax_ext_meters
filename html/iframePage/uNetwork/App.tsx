@@ -28,7 +28,6 @@ const setHeaders = (s: any, accessKey: string, secretKey: string): any => {
   const timeStamp = new Date().getTime();
   const combox_key = accessKey + '|' + uuidv4() + '|' + timeStamp;
   const signature = aesEncrypt(combox_key, secretKey, accessKey);
-  // console.log(signature);
   const header = {
     'User-Agent': 'python-requests/2.25.1',
     'Content-Type': 'application/json',
@@ -257,7 +256,6 @@ export default () => {
         };
         // @ts-ignore
         requestBody.projectId = data.value;
-        console.log('requestBody', requestBody);
         const apiUrl = `http://10.50.3.224:8081/project/addRedisInterface`;
         try {
           const response = await fetch(apiUrl, {
@@ -270,14 +268,12 @@ export default () => {
           // 从返回的jsonData中提取data数组
           const dataToCompare = jsonData.data;
           console.log('dataToCompare', dataToCompare);
-
           // 循环查找在uNetworkList中的序列号
           const comparedRow = dataToCompare.map((item: string) => {
             const index = uNetworkList.findIndex((path) => path === item);
             return index;
           });
           setComparedRows(comparedRow);
-          console.log('comparedRows', comparedRows);
         } catch (error) {
           console.error(error);
         }
@@ -446,6 +442,10 @@ export default () => {
     onAddInterceptorClick,
     onRequestUrlClick,
   });
+  const clearRecords = () => {
+    setUNetwork([]);
+    setComparedRows([]);
+  };
   return <div>
     <div className="ajax-tools-devtools-action-bar">
       <Button
@@ -461,7 +461,7 @@ export default () => {
         shape="circle"
         title="清除记录"
         icon={<StopOutlined/>}
-        onClick={() => setUNetwork([])}
+        onClick={clearRecords}
       />
       <Button
         type="text"

@@ -221,9 +221,7 @@ export default (props: RequestDrawerProps) => {
               body: JSON.stringify(requestBody),
               headers: Object.assign({}, s.headers),
             });
-            console.log(' response', response);
             const jsonData = await response.json();
-            console.log(' jsonData', jsonData);
             setData(jsonData);
           } catch (error) {
             console.error(error);
