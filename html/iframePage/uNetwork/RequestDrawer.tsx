@@ -11,14 +11,14 @@ const aesEncrypt = (text: string, secretKey: string, iv: string): string => {
   return encrypted.toString();
 };
 
-const setHeaders = (s: any, accessKey: string, secretKey: string): any => {
+const setHeaders = (s: any, accessKey: string, secretKey: string, ContentType = 'application/json'): any => {
   const timeStamp = new Date().getTime();
   const combox_key = accessKey + '|' + uuidv4() + '|' + timeStamp;
   const signature = aesEncrypt(combox_key, secretKey, accessKey);
   // console.log(signature);
   const header = {
     'User-Agent': 'python-requests/2.25.1',
-    'Content-Type': 'application/json',
+    'Content-Type': ContentType,
     'ACCEPT': 'application/json',
     'Accept-Encoding': 'gzip, deflate',
     'accessKey': accessKey,
@@ -232,7 +232,6 @@ export default (props: RequestDrawerProps) => {
 
       fetchData();
     }, [path]);
-
     if (data) {
       // 使用 formatText 函数对数据进行格式化
       const formattedData = formatText(JSON.stringify(data || {}, null, 4));
@@ -245,7 +244,144 @@ export default (props: RequestDrawerProps) => {
       <pre>loading...</pre>
     </>; // 或者可以返回一个 loading 状态的 UI，表示正在加载数据
   };
+  const commit = (record: any) => {
+    let s = { headers: {} }; // 创建一个空的请求头对象    const url = new URL(record.request.url);
+    s = setHeaders(s, 'OjoTCHX6sfhcWMq6', '3kT6tWHbwa1jOyGY'); // 设置请求头
+    const url = new URL(record.request.url);
+    const uuid = uuidv4();
+    console.log('record', record);
+    const fetchData = async () => {
+      getDataFromIndexedDB().then(async data => {
+        const requestBody = {
+        };
+        // @ts-ignore
+        requestBody.projectId = data.value;
+        requestBody.name = url.pathname;
+        requestBody.status = 'Underway';
+        requestBody.method = 'GET';
+        requestBody.userId = 'admin';
+        requestBody.url = '';
+        requestBody.protocol = 'HTTP';
+        requestBody.environmentId = '';
+        requestBody.remark = '';
+        requestBody.tags = '';
+        requestBody.request = {
+          id: uuid,
+          type: 'HTTPSamplerProxy',
+          name: url.pathname,
+          enabled: true,
+          $type: 'Sampler',
+          protocol: 'HTTP',
+          method: 'GET',
+          path: url.pathname,
+          autoRedirects: false,
+          followRedirects: true,
+          useKeepalive: true,
+          doMultipartPost: false,
+          connectTimeout: 60000,
+          responseTimeout: 60000,
+          body: {
+            type: 'Raw',
+            raw: record.request.postData || '',
+            kvs: [],
+            binary: []
+          },
+          arguments: [
+            {
+              type: 'text',
+              enable: true,
+              uuid: '4a0b3',
+              contentType: 'text/plain',
+              required: false,
+              urlEncode: false
+            }
+          ],
+          rest: [],
+          files: [],
+          headers: [
+            {
+              name: '',
+              value: '',
+              enable: true
+            }
+          ],
+          hashTree: [
+            {
+              resourceId: '1dfb130c-bd54-40c5-b33f-1e3eca04e81c',
+              type: 'Assertions',
+              text: [],
+              regex: [],
+              jsonPath: [],
+              jsr223: [],
+              xpath2: [],
+              duration: {
+                type: 'Duration'
+              },
+              enable: true,
+              document: {
+                type: 'JSON',
+                data: {
+                  xmlFollowAPI: false,
+                  jsonFollowAPI: false,
+                  json: [],
+                  xml: []
+                },
+                enable: true
+              },
+              clazzName: 'io.metersphere.api.dto.definition.request.assertions.MsAssertions'
+            }
+          ],
+          clazzName: 'io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy',
+          preSize: 0,
+          postSize: 0,
+          ruleSize: 0
+        };
+        requestBody.path = url.pathname;
+        requestBody.addFields = [];
+        requestBody.editFields = [];
+        requestBody.id = uuid;
+        requestBody.response = {
+          headers: [
+            {
+              name: '',
+              value: '',
+              enable: true
+            }
+          ],
+          body: {
+            type: 'Raw',
+            raw: record.getContent || '',
+            kvs: [],
+            binary: []
+          },
+          statusCode: [
+            {
+              name: '',
+              value: '',
+              enable: true
+            }
+          ],
+          type: 'HTTP'
+        };
+        console.log('requestBody', requestBody);
+        const apiUrl = `http://10.50.3.224:8081/api/definition/created`;
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            // @ts-ignore
+            body: JSON.stringify(requestBody),
+            headers: Object.assign({}, s.headers),
+          });
+          const jsonData = await  response.json();
+          console.log('jsonData', jsonData);
+        } catch (error) {
+          console.error(error);
+        }
+      });
 
+    };
+    fetchData();
+  };
   const title = record && record.request.url.match('[^/]+(?!.*/)');
   return <Drawer
     title={<span style={{ fontSize: 12 }}>{title}</span>}
@@ -272,7 +408,7 @@ export default (props: RequestDrawerProps) => {
             <div style={{ width: '8px' }}></div> {/* 使用CSS样式设置间距 */}
             <Button
               type="primary"
-              onClick={() => onAddInterceptorClick(record)}
+              onClick={() => commit(record)}
             >
                 提交
             </Button>
