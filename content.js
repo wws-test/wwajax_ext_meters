@@ -256,10 +256,10 @@ function actionBar (container) {
   header.appendChild(left);
   // right
   const right = document.createElement('div');
-  const themeModeBtn = themeModeButton(container);
-  right.appendChild(themeModeBtn);
-  const discussionsBtn = discussionsButton();
-  right.appendChild(discussionsBtn);
+  // const themeModeBtn = themeModeButton(container);
+  // right.appendChild(themeModeBtn);
+  // const discussionsBtn = discussionsButton();
+  // right.appendChild(discussionsBtn);
   const codeNetBtn = codeNetButton();
   right.appendChild(codeNetBtn);
   const newTabBtn = newTabButton();

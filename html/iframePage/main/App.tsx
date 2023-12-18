@@ -72,7 +72,7 @@ function App() {
   const onGroupAdd = () => {
     const len = ajaxDataList.length;
     const newAjaxDataList = [...ajaxDataList, {
-      summaryText: 'Group Name (Editable)',
+      summaryText: '默认组名 (可编辑)',
       collapseActiveKeys: [],
       headerClass: colorMap[len % 9],
       interfaceList: [{ ...defaultInterface }]
@@ -268,7 +268,7 @@ function App() {
                 },
               ]
             }}>
-            Add Group
+            添加数据组
           </Dropdown.Button>
         </Space>
         <div>
@@ -281,12 +281,12 @@ function App() {
             }}
             style={{ filter: ajaxToolsSwitchOn ? undefined : 'opacity(0.5)' }}
           >
-            <span title="Change the request status from 404/500 to 200">Non-200</span>
+            <span title="Change the request status from 404/500 to 200">强制修改http状态码为200</span>
           </Checkbox>
           <Switch
             defaultChecked
-            checkedChildren="Turn on"
-            unCheckedChildren="Turn off"
+            checkedChildren="开启"
+            unCheckedChildren="关闭"
             checked={ajaxToolsSwitchOn}
             onChange={(value) => {
               setAjaxToolsSwitchOn(value);
@@ -485,17 +485,6 @@ function App() {
           />
         }
       </main>
-      <footer className="ajax-tools-iframe-footer">
-        Copyright © 2022-{(new Date()).getFullYear()}
-        <a href="https://github.com/PengChen96/ajax-tools" target="_blank" rel="noreferrer" style={{ color: '#666' }}>
-          &nbsp;Ajax Interceptor Tools&nbsp;
-        </a>
-        ( 🌟 if you find it helpful, give me a star on
-        <a href="https://github.com/PengChen96/ajax-tools" target="_blank" rel="noreferrer" style={{ margin: '0 4px' }}>
-          <GithubOutlined style={{ color: '#333' }} title="GitHub"/>
-        </a>
-        )
-      </footer>
       <ModifyDataModal
         ref={modifyDataModalRef}
         onSave={onInterfaceListSave}
