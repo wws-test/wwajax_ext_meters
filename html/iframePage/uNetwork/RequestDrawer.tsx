@@ -244,7 +244,8 @@ export default (props: RequestDrawerProps) => {
       <pre>loading...</pre>
     </>; // 或者可以返回一个 loading 状态的 UI，表示正在加载数据
   };
-  const commit = (record: any) => {
+  const commit = () => {
+    const postData = record.request.postData || '';
     let s = { headers: {} }; // 创建一个空的请求头对象    const url = new URL(record.request.url);
     s = setHeaders(s, 'OjoTCHX6sfhcWMq6', '3kT6tWHbwa1jOyGY'); // 设置请求头
     const url = new URL(record.request.url);
@@ -272,7 +273,7 @@ export default (props: RequestDrawerProps) => {
           enabled: true,
           $type: 'Sampler',
           protocol: 'HTTP',
-          method: 'GET',
+          method: record.request.method,
           path: url.pathname,
           autoRedirects: false,
           followRedirects: true,
@@ -282,7 +283,7 @@ export default (props: RequestDrawerProps) => {
           responseTimeout: 60000,
           body: {
             type: 'Raw',
-            raw: record.request.postData || '',
+            raw: postData.text,
             kvs: [],
             binary: []
           },
@@ -350,7 +351,7 @@ export default (props: RequestDrawerProps) => {
           ],
           body: {
             type: 'Raw',
-            raw: record.getContent || '',
+            raw: 'response',
             kvs: [],
             binary: []
           },
@@ -374,6 +375,7 @@ export default (props: RequestDrawerProps) => {
           });
           const jsonData = await  response.json();
           console.log('jsonData', jsonData);
+          alert(JSON.stringify(jsonData, null, 2));
         } catch (error) {
           console.error(error);
         }
