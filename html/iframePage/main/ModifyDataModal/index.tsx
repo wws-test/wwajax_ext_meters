@@ -148,7 +148,7 @@ const ModifyDataModal = (
                     />
                   </Space.Compact>
                 </Card>
-                <Card title="Replacement Request Headers" type="inner" size="small">
+                <Card title="替换请求头" type="inner" size="small">
                   <MonacoEditor
                     ref={monacoEditorHeadersRef}
                     language={'json'}
