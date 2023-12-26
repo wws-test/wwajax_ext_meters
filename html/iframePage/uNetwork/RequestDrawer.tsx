@@ -244,146 +244,148 @@ export default (props: RequestDrawerProps) => {
       <pre>loading...</pre>
     </>; // 或者可以返回一个 loading 状态的 UI，表示正在加载数据
   };
-  const commit = () => {
-    const postData = record.request.postData || '';
+
+  const fetchData = async () => {
     let s = { headers: {} }; // 创建一个空的请求头对象    const url = new URL(record.request.url);
     s = setHeaders(s, 'OjoTCHX6sfhcWMq6', '3kT6tWHbwa1jOyGY'); // 设置请求头
+    const postData = record.request.postData || '';
+
     const url = new URL(record.request.url);
     const uuid = uuidv4();
-    console.log('record', record);
-    const fetchData = async () => {
-      getDataFromIndexedDB().then(async data => {
-        const requestBody = {
-        };
-        // @ts-ignore
-        requestBody.projectId = data.value;
-        requestBody.name = url.pathname;
-        requestBody.status = 'Underway';
-        requestBody.method = 'GET';
-        requestBody.userId = 'admin';
-        requestBody.url = '';
-        requestBody.protocol = 'HTTP';
-        requestBody.environmentId = '';
-        requestBody.moduleId = '';
-        requestBody.modulePath = '/未规划接口';
-        requestBody.remark = '';
-        requestBody.tags = '';
-        requestBody.request = {
-          id: uuid,
-          type: 'HTTPSamplerProxy',
-          name: url.pathname,
-          enabled: true,
-          $type: 'Sampler',
-          protocol: 'HTTP',
-          method: record.request.method,
-          path: url.pathname,
-          autoRedirects: false,
-          followRedirects: true,
-          useKeepalive: true,
-          doMultipartPost: false,
-          connectTimeout: 60000,
-          responseTimeout: 60000,
-          body: {
-            type: 'Raw',
-            raw: postData.text,
-            kvs: [],
-            binary: []
-          },
-          arguments: [
-            {
-              type: 'text',
-              enable: true,
-              uuid: '4a0b3',
-              contentType: 'text/plain',
-              required: false,
-              urlEncode: false
-            }
-          ],
-          rest: [],
-          files: [],
-          headers: [
-            {
-              name: '',
-              value: '',
-              enable: true
-            }
-          ],
-          hashTree: [
-            {
-              resourceId: '1dfb130c-bd54-40c5-b33f-1e3eca04e81c',
-              type: 'Assertions',
-              text: [],
-              regex: [],
-              jsonPath: [],
-              jsr223: [],
-              xpath2: [],
-              duration: {
-                type: 'Duration'
+    getDataFromIndexedDB().then(async data => {
+      const requestBody = {
+      };
+      // @ts-ignore
+      requestBody.projectId = data.value;
+      requestBody.name = url.pathname;
+      requestBody.status = 'Underway';
+      requestBody.method = 'GET';
+      requestBody.userId = 'admin';
+      requestBody.url = '';
+      requestBody.protocol = 'HTTP';
+      requestBody.environmentId = '';
+      requestBody.moduleId = '';
+      requestBody.modulePath = '/未规划接口';
+      requestBody.remark = '';
+      requestBody.tags = '';
+      requestBody.request = {
+        id: uuid,
+        type: 'HTTPSamplerProxy',
+        name: url.pathname,
+        enabled: true,
+        $type: 'Sampler',
+        protocol: 'HTTP',
+        method: record.request.method,
+        path: url.pathname,
+        autoRedirects: false,
+        followRedirects: true,
+        useKeepalive: true,
+        doMultipartPost: false,
+        connectTimeout: 60000,
+        responseTimeout: 60000,
+        body: {
+          type: 'Raw',
+          raw: postData.text,
+          kvs: [],
+          binary: []
+        },
+        arguments: [
+          {
+            type: 'text',
+            enable: true,
+            uuid: '4a0b3',
+            contentType: 'text/plain',
+            required: false,
+            urlEncode: false
+          }
+        ],
+        rest: [],
+        files: [],
+        headers: [
+          {
+            name: '',
+            value: '',
+            enable: true
+          }
+        ],
+        hashTree: [
+          {
+            resourceId: '1dfb130c-bd54-40c5-b33f-1e3eca04e81c',
+            type: 'Assertions',
+            text: [],
+            regex: [],
+            jsonPath: [],
+            jsr223: [],
+            xpath2: [],
+            duration: {
+              type: 'Duration'
+            },
+            enable: true,
+            document: {
+              type: 'JSON',
+              data: {
+                xmlFollowAPI: false,
+                jsonFollowAPI: false,
+                json: [],
+                xml: []
               },
-              enable: true,
-              document: {
-                type: 'JSON',
-                data: {
-                  xmlFollowAPI: false,
-                  jsonFollowAPI: false,
-                  json: [],
-                  xml: []
-                },
-                enable: true
-              },
-              clazzName: 'io.metersphere.api.dto.definition.request.assertions.MsAssertions'
-            }
-          ],
-          clazzName: 'io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy',
-          preSize: 0,
-          postSize: 0,
-          ruleSize: 0
-        };
-        requestBody.path = url.pathname;
-        requestBody.addFields = [];
-        requestBody.editFields = [];
-        requestBody.id = uuid;
-        requestBody.response = {
-          headers: [
-            {
-              name: '',
-              value: '',
               enable: true
-            }
-          ],
-          body: {
-            type: 'Raw',
-            raw: 'response',
-            kvs: [],
-            binary: []
-          },
-          statusCode: [
-            {
-              name: '',
-              value: '',
-              enable: true
-            }
-          ],
-          type: 'HTTP'
-        };
-        console.log('requestBody', requestBody);
-        const apiUrl = `http://10.50.3.224:8081/api/definition/created`;
-        try {
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            // @ts-ignore
-            body: JSON.stringify(requestBody),
-            headers: Object.assign({}, s.headers),
-          });
-          const jsonData = await  response.json();
-          console.log('jsonData', jsonData);
-          alert(JSON.stringify(jsonData, null, 2));
-        } catch (error) {
-          console.error(error);
-        }
-      });
+            },
+            clazzName: 'io.metersphere.api.dto.definition.request.assertions.MsAssertions'
+          }
+        ],
+        clazzName: 'io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy',
+        preSize: 0,
+        postSize: 0,
+        ruleSize: 0
+      };
+      requestBody.path = url.pathname;
+      requestBody.addFields = [];
+      requestBody.editFields = [];
+      requestBody.id = uuid;
+      requestBody.response = {
+        headers: [
+          {
+            name: '',
+            value: '',
+            enable: true
+          }
+        ],
+        body: {
+          type: 'Raw',
+          raw: 'response',
+          kvs: [],
+          binary: []
+        },
+        statusCode: [
+          {
+            name: '',
+            value: '',
+            enable: true
+          }
+        ],
+        type: 'HTTP'
+      };
+      console.log('requestBody', requestBody);
+      const apiUrl = `http://10.50.3.224:8081/api/definition/created`;
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          // @ts-ignore
+          body: JSON.stringify(requestBody),
+          headers: Object.assign({}, s.headers),
+        });
+        const jsonData = await  response.json();
+        console.log('jsonData', jsonData);
+        alert(JSON.stringify(jsonData, null, 2));
+      } catch (error) {
+        console.error(error);
+      }
+    });
 
-    };
+  };
+  const commit = () => {
+    console.log('record', record);
     fetchData();
   };
   const title = record && record.request.url.match('[^/]+(?!.*/)');

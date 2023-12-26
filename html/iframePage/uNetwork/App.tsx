@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 // @ts-ignore
 import { VTablePro } from 'virtualized-table';
 import { Button, Input, Modal, Radio, Space } from 'antd';
-import { BuildFilled, FilterOutlined, PauseCircleFilled, PlayCircleTwoTone, StopOutlined } from '@ant-design/icons';
+import { MenuUnfoldOutlined, BuildFilled, FilterOutlined, PauseCircleFilled, PlayCircleTwoTone, StopOutlined } from '@ant-design/icons';
 import 'antd/dist/antd.css';
 import './App.css';
 import RequestDrawer from './RequestDrawer';
@@ -71,7 +71,145 @@ function getDataFromIndexedDB() {
     };
   });
 }
+const fetchData = async (record: any) => {
+  let s = { headers: {} }; // 创建一个空的请求头对象    const url = new URL(record.request.url);
+  s = setHeaders(s, 'OjoTCHX6sfhcWMq6', '3kT6tWHbwa1jOyGY'); // 设置请求头
+  const postData = record.request.postData || '';
 
+  const url = new URL(record.request.url);
+  const uuid = uuidv4();
+  getDataFromIndexedDB().then(async data => {
+    const requestBody = {
+    };
+    // @ts-ignore
+    requestBody.projectId = data.value;
+    requestBody.name = url.pathname;
+    requestBody.status = 'Underway';
+    requestBody.method = 'GET';
+    requestBody.userId = 'admin';
+    requestBody.url = '';
+    requestBody.protocol = 'HTTP';
+    requestBody.environmentId = 'Bulk_import';
+    requestBody.moduleId = '';
+    requestBody.modulePath = '/未规划接口';
+    requestBody.remark = '';
+    requestBody.tags = '';
+    requestBody.request = {
+      id: uuid,
+      type: 'HTTPSamplerProxy',
+      name: url.pathname,
+      enabled: true,
+      $type: 'Sampler',
+      protocol: 'HTTP',
+      method: record.request.method,
+      path: url.pathname,
+      autoRedirects: false,
+      followRedirects: true,
+      useKeepalive: true,
+      doMultipartPost: false,
+      connectTimeout: 60000,
+      responseTimeout: 60000,
+      body: {
+        type: 'Raw',
+        raw: postData.text,
+        kvs: [],
+        binary: []
+      },
+      arguments: [
+        {
+          type: 'text',
+          enable: true,
+          uuid: '4a0b3',
+          contentType: 'text/plain',
+          required: false,
+          urlEncode: false
+        }
+      ],
+      rest: [],
+      files: [],
+      headers: [
+        {
+          name: '',
+          value: '',
+          enable: true
+        }
+      ],
+      hashTree: [
+        {
+          resourceId: '1dfb130c-bd54-40c5-b33f-1e3eca04e81c',
+          type: 'Assertions',
+          text: [],
+          regex: [],
+          jsonPath: [],
+          jsr223: [],
+          xpath2: [],
+          duration: {
+            type: 'Duration'
+          },
+          enable: true,
+          document: {
+            type: 'JSON',
+            data: {
+              xmlFollowAPI: false,
+              jsonFollowAPI: false,
+              json: [],
+              xml: []
+            },
+            enable: true
+          },
+          clazzName: 'io.metersphere.api.dto.definition.request.assertions.MsAssertions'
+        }
+      ],
+      clazzName: 'io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy',
+      preSize: 0,
+      postSize: 0,
+      ruleSize: 0
+    };
+    requestBody.path = url.pathname;
+    requestBody.addFields = [];
+    requestBody.editFields = [];
+    requestBody.id = uuid;
+    requestBody.response = {
+      headers: [
+        {
+          name: '',
+          value: '',
+          enable: true
+        }
+      ],
+      body: {
+        type: 'Raw',
+        raw: 'response',
+        kvs: [],
+        binary: []
+      },
+      statusCode: [
+        {
+          name: '',
+          value: '',
+          enable: true
+        }
+      ],
+      type: 'HTTP'
+    };
+    console.log('requestBody', requestBody);
+    const apiUrl = `http://10.50.3.224:8081/api/definition/created`;
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        // @ts-ignore
+        body: JSON.stringify(requestBody),
+        headers: Object.assign({}, s.headers),
+      });
+      const jsonData = await  response.json();
+      console.log('jsonData', jsonData);
+      alert(JSON.stringify(jsonData, null, 2));
+    } catch (error) {
+      console.error(error);
+    }
+  });
+
+};
 
 // "/^t.*$/" or "^t.*$" => new RegExp
 // 定义一个函数，将字符串转换为正则表达式
@@ -110,6 +248,7 @@ export default () => {
   } : {
     onAddInterceptorClick: (record: any) => void,
     onRequestUrlClick: (record: any) => void,
+
   }) => {
     return [
       {
@@ -142,6 +281,14 @@ export default () => {
         width: 60,
         align: 'center',
         render: (value: any, record: { request: { method: string }; }) => record.request.method,
+      },
+      {
+        title: 'Time(秒)',
+        dataIndex: 'time',
+        width: 60,
+        align: 'center',
+        // @ts-ignore
+        render: (value: any, record: { response: { status: string }; }) => (record.time / 1000).toFixed(4),
       },
       {
         title: 'Status',
@@ -193,7 +340,7 @@ export default () => {
   const setUNetworkData = function (entry:any) {
     if (['fetch', 'xhr'].includes(entry._resourceType)) {
       const url = new URL(entry.request.url);
-      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png')) {
+      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png')&& !url.pathname.endsWith('.js')) {
         if (!uNetworkSet.has(entry.request.url)) { // Check if the URL is already in the Set
           uNetworkSet.add(entry.request.url); // If not, add it to the Set
           uNetwork.push(entry);
@@ -446,6 +593,16 @@ export default () => {
     setUNetwork([]);
     setComparedRows([]);
   };
+  const metersphere_import = () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+      }}
+  };
   return <div>
     <div className="ajax-tools-devtools-action-bar">
       <Button
@@ -468,6 +625,12 @@ export default () => {
         title="一键对比"
         icon={<BuildFilled />}
         onClick={() => compare()}
+      />
+      <Button
+          type="text"
+          title="批量导入"
+          icon={<MenuUnfoldOutlined />}
+          onClick={() => metersphere_import()}
       />
       <Input
         placeholder="筛选请求"
