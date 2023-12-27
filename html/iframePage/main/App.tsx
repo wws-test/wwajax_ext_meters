@@ -485,6 +485,13 @@ function App() {
           />
         }
       </main>
+      <footer className="ajax-tools-iframe-footer">
+        (Powered by metersphere)
+        <a href="http://10.50.3.224:8081/" target="_blank" rel="noreferrer" style={{ color: '#666' }}>
+          &nbsp;点击跳转metersphere&nbsp;
+        </a>
+        )
+      </footer>
       <ModifyDataModal
         ref={modifyDataModalRef}
         onSave={onInterfaceListSave}

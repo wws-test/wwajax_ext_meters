@@ -71,134 +71,17 @@ function getDataFromIndexedDB() {
     };
   });
 }
-const fetchData = async (record: any) => {
+const fetchData = async (requestBodyList: any) => {
   let s = { headers: {} }; // 创建一个空的请求头对象    const url = new URL(record.request.url);
   s = setHeaders(s, 'OjoTCHX6sfhcWMq6', '3kT6tWHbwa1jOyGY'); // 设置请求头
-  const postData = record.request.postData || '';
-
-  const url = new URL(record.request.url);
-  const uuid = uuidv4();
   getDataFromIndexedDB().then(async data => {
-    const requestBody = {
-    };
-    // @ts-ignore
-    requestBody.projectId = data.value;
-    requestBody.name = url.pathname;
-    requestBody.status = 'Underway';
-    requestBody.method = 'GET';
-    requestBody.userId = 'admin';
-    requestBody.url = '';
-    requestBody.protocol = 'HTTP';
-    requestBody.environmentId = 'Bulk_import';
-    requestBody.moduleId = '';
-    requestBody.modulePath = '/未规划接口';
-    requestBody.remark = '';
-    requestBody.tags = '';
-    requestBody.request = {
-      id: uuid,
-      type: 'HTTPSamplerProxy',
-      name: url.pathname,
-      enabled: true,
-      $type: 'Sampler',
-      protocol: 'HTTP',
-      method: record.request.method,
-      path: url.pathname,
-      autoRedirects: false,
-      followRedirects: true,
-      useKeepalive: true,
-      doMultipartPost: false,
-      connectTimeout: 60000,
-      responseTimeout: 60000,
-      body: {
-        type: 'Raw',
-        raw: postData.text,
-        kvs: [],
-        binary: []
-      },
-      arguments: [
-        {
-          type: 'text',
-          enable: true,
-          uuid: '4a0b3',
-          contentType: 'text/plain',
-          required: false,
-          urlEncode: false
-        }
-      ],
-      rest: [],
-      files: [],
-      headers: [
-        {
-          name: '',
-          value: '',
-          enable: true
-        }
-      ],
-      hashTree: [
-        {
-          resourceId: '1dfb130c-bd54-40c5-b33f-1e3eca04e81c',
-          type: 'Assertions',
-          text: [],
-          regex: [],
-          jsonPath: [],
-          jsr223: [],
-          xpath2: [],
-          duration: {
-            type: 'Duration'
-          },
-          enable: true,
-          document: {
-            type: 'JSON',
-            data: {
-              xmlFollowAPI: false,
-              jsonFollowAPI: false,
-              json: [],
-              xml: []
-            },
-            enable: true
-          },
-          clazzName: 'io.metersphere.api.dto.definition.request.assertions.MsAssertions'
-        }
-      ],
-      clazzName: 'io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy',
-      preSize: 0,
-      postSize: 0,
-      ruleSize: 0
-    };
-    requestBody.path = url.pathname;
-    requestBody.addFields = [];
-    requestBody.editFields = [];
-    requestBody.id = uuid;
-    requestBody.response = {
-      headers: [
-        {
-          name: '',
-          value: '',
-          enable: true
-        }
-      ],
-      body: {
-        type: 'Raw',
-        raw: 'response',
-        kvs: [],
-        binary: []
-      },
-      statusCode: [
-        {
-          name: '',
-          value: '',
-          enable: true
-        }
-      ],
-      type: 'HTTP'
-    };
-    console.log('requestBody', requestBody);
-    const apiUrl = `http://10.50.3.224:8081/api/definition/created`;
+
+    const apiUrl = `http://10.50.3.224:8081/api/definition/Bulk_import_created`;
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
         // @ts-ignore
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestBodyList),
         headers: Object.assign({}, s.headers),
       });
       const jsonData = await  response.json();
@@ -594,14 +477,131 @@ export default () => {
     setComparedRows([]);
   };
   const metersphere_import = () => {
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = '.json';
-    fileInput.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-      }}
+    const requestBodyList = []; // 创建一个空数组
+    for (let i = 0; i < uNetwork.length; i++) {
+      const postData = uNetwork[i].request.postData || '';
+      const url = new URL(uNetwork[i].request.url);
+      const uuid = uuidv4();
+      const requestBody = {
+      };
+      getDataFromIndexedDB().then(async data => {
+        // @ts-ignore
+        requestBody.projectId = data.value;
+      });
+      requestBody.name = url.pathname;
+      requestBody.status = 'Underway';
+      requestBody.method = 'GET';
+      requestBody.userId = 'admin';
+      requestBody.url = '';
+      requestBody.protocol = 'HTTP';
+      requestBody.environmentId = '';
+      requestBody.moduleId = 'Bulk_import';
+      requestBody.modulePath = '/未规划接口';
+      requestBody.remark = '';
+      requestBody.tags = '';
+      requestBody.request = {
+        id: uuid,
+        type: 'HTTPSamplerProxy',
+        name: url.pathname,
+        enabled: true,
+        $type: 'Sampler',
+        protocol: 'HTTP',
+        method: uNetwork[i].request.method,
+        path: url.pathname,
+        autoRedirects: false,
+        followRedirects: true,
+        useKeepalive: true,
+        doMultipartPost: false,
+        connectTimeout: 60000,
+        responseTimeout: 60000,
+        body: {
+          type: 'Raw',
+          raw: postData.text,
+          kvs: [],
+          binary: []
+        },
+        arguments: [
+          {
+            type: 'text',
+            enable: true,
+            uuid: '4a0b3',
+            contentType: 'text/plain',
+            required: false,
+            urlEncode: false
+          }
+        ],
+        rest: [],
+        files: [],
+        headers: [
+          {
+            name: '',
+            value: '',
+            enable: true
+          }
+        ],
+        hashTree: [
+          {
+            resourceId: '1dfb130c-bd54-40c5-b33f-1e3eca04e81c',
+            type: 'Assertions',
+            text: [],
+            regex: [],
+            jsonPath: [],
+            jsr223: [],
+            xpath2: [],
+            duration: {
+              type: 'Duration'
+            },
+            enable: true,
+            document: {
+              type: 'JSON',
+              data: {
+                xmlFollowAPI: false,
+                jsonFollowAPI: false,
+                json: [],
+                xml: []
+              },
+              enable: true
+            },
+            clazzName: 'io.metersphere.api.dto.definition.request.assertions.MsAssertions'
+          }
+        ],
+        clazzName: 'io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy',
+        preSize: 0,
+        postSize: 0,
+        ruleSize: 0
+      };
+      requestBody.path = url.pathname;
+      requestBody.addFields = [];
+      requestBody.editFields = [];
+      requestBody.id = uuid;
+      requestBody.response = {
+        headers: [
+          {
+            name: '',
+            value: '',
+            enable: true
+          }
+        ],
+        body: {
+          type: 'Raw',
+          raw: 'response',
+          kvs: [],
+          binary: []
+        },
+        statusCode: [
+          {
+            name: '',
+            value: '',
+            enable: true
+          }
+        ],
+        type: 'HTTP'
+      };
+      requestBodyList.push(requestBody);
+    }
+    console.log(requestBodyList);
+    fetchData(requestBodyList);
+
   };
   return <div>
     <div className="ajax-tools-devtools-action-bar">
