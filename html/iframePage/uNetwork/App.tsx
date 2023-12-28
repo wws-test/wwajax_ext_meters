@@ -219,13 +219,16 @@ export default () => {
 
   // 定义一个名为setUNetworkData的函数，参数为request
   const uNetworkSet = new Set(); // Create a Set to store unique URLs
-
-  const setUNetworkData = function (entry:any) {
+  const setUNetworkData = function (entry: any) {
     if (['fetch', 'xhr'].includes(entry._resourceType)) {
       const url = new URL(entry.request.url);
-      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png')&& !url.pathname.endsWith('.js')&& !url.pathname.endsWith('.css')) {
-        if (!uNetworkSet.has(entry.request.url)) { // Check if the URL is already in the Set
-          uNetworkSet.add(entry.request.url); // If not, add it to the Set
+      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png') && !url.pathname.endsWith('.js') && !url.pathname.endsWith('.css')) {
+        const contentType = entry.response.headers.find((header: any) => header.name.toLowerCase() === 'content-type');
+        if (contentType && contentType.value.toLowerCase().includes('text/html')) {
+          return; // 如果响应的Content-Type是text/html，则直接返回，不执行后续操作
+        }
+        if (!uNetworkSet.has(entry.request.url)) {
+          uNetworkSet.add(entry.request.url);
           uNetwork.push(entry);
           setUNetwork([...uNetwork]);
         }
