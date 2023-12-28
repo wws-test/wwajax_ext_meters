@@ -490,7 +490,7 @@ export default () => {
       });
       requestBody.name = url.pathname;
       requestBody.status = 'Underway';
-      requestBody.method = 'GET';
+      requestBody.method = uNetwork[i].request.method;
       requestBody.userId = 'admin';
       requestBody.url = '';
       requestBody.protocol = 'HTTP';
