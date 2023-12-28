@@ -223,7 +223,7 @@ export default () => {
   const setUNetworkData = function (entry:any) {
     if (['fetch', 'xhr'].includes(entry._resourceType)) {
       const url = new URL(entry.request.url);
-      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png')&& !url.pathname.endsWith('.js')) {
+      if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png')&& !url.pathname.endsWith('.js')&& !url.pathname.endsWith('.css')) {
         if (!uNetworkSet.has(entry.request.url)) { // Check if the URL is already in the Set
           uNetworkSet.add(entry.request.url); // If not, add it to the Set
           uNetwork.push(entry);
