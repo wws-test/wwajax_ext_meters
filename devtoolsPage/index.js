@@ -14,7 +14,7 @@ chrome.devtools.panels.create('U-Network', 'icon.png', '../html/iframePage/dist/
       const transaction = db.transaction('myObjectStore', 'readwrite');
       const objectStore = transaction.objectStore('myObjectStore');
 
-      const data = { key: 'projectid', value: '0f414c3b-6d4d-47e0-8263-1bfb649a55d7' };
+      const data = { key: 'projectid', value: '00bac8fa-6c80-492a-83d7-8f74d5846e80' };
       const request = objectStore.put(data);
 
       request.onsuccess = function(event) {

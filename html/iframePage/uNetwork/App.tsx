@@ -479,6 +479,7 @@ export default () => {
     setUNetwork([]);
     setComparedRows([]);
   };
+
   const metersphere_import = () => {
     const requestBodyList = []; // 创建一个空数组
     for (let i = 0; i < uNetwork.length; i++) {
@@ -491,17 +492,29 @@ export default () => {
         // @ts-ignore
         requestBody.projectId = data.value;
       });
+      // @ts-ignore
       requestBody.name = url.pathname;
+      // @ts-ignore
       requestBody.status = 'Underway';
+      // @ts-ignore
       requestBody.method = uNetwork[i].request.method;
+      // @ts-ignore
       requestBody.userId = 'admin';
+      // @ts-ignore
       requestBody.url = '';
+      // @ts-ignore
       requestBody.protocol = 'HTTP';
+      // @ts-ignore
       requestBody.environmentId = '';
+      // @ts-ignore
       requestBody.moduleId = 'Bulk_import';
+      // @ts-ignore
       requestBody.modulePath = '/未规划接口';
+      // @ts-ignore
       requestBody.remark = '';
+      // @ts-ignore
       requestBody.tags = '';
+      // @ts-ignore
       requestBody.request = {
         id: uuid,
         type: 'HTTPSamplerProxy',
@@ -573,10 +586,15 @@ export default () => {
         postSize: 0,
         ruleSize: 0
       };
+      // @ts-ignore
       requestBody.path = url.pathname;
+      // @ts-ignore
       requestBody.addFields = [];
+      // @ts-ignore
       requestBody.editFields = [];
+      // @ts-ignore
       requestBody.id = uuid;
+      // @ts-ignore
       requestBody.response = {
         headers: [
           {
