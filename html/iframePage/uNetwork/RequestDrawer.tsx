@@ -339,7 +339,7 @@ export default (props: RequestDrawerProps) => {
         postSize: 0,
         ruleSize: 0
       };
-      requestBody.path = url.pathname;
+      requestBody.path = url.pathname + url.search;
       requestBody.addFields = [];
       requestBody.editFields = [];
       requestBody.id = uuid;
