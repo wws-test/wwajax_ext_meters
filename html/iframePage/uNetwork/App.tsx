@@ -587,7 +587,7 @@ export default () => {
         ruleSize: 0
       };
       // @ts-ignore
-      requestBody.path = url.pathname;
+      requestBody.path = url.pathname + url.search;
       // @ts-ignore
       requestBody.addFields = [];
       // @ts-ignore
@@ -648,10 +648,10 @@ export default () => {
         onClick={() => compare()}
       />
       <Button
-          type="text"
-          title="批量导入"
-          icon={<MenuUnfoldOutlined />}
-          onClick={() => metersphere_import()}
+        type="text"
+        title="批量导入"
+        icon={<MenuUnfoldOutlined />}
+        onClick={() => metersphere_import()}
       />
       <Input
         placeholder="筛选请求"
