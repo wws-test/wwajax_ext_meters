@@ -124,7 +124,8 @@ export default () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currRecord, setCurrRecord] = useState(null);
   const [comparedRows, setComparedRows] = useState([]);
-
+  const [selectedRowKeys, setSelectedRowKeys] = useState<any>([]);
+  const [selectedRows, setSelectedRows] = useState<any>([]);
   const getColumns = ({
     onAddInterceptorClick,
     onRequestUrlClick
@@ -217,6 +218,43 @@ export default () => {
   const filteredDataSource = uNetwork
     .filter((v: { request: { url: string; }; }) => v.request.url.match(strToRegExp(filterKey)));
 
+  // 定义行选择功能的配置对象 rowSelection
+  const rowSelection = {
+    // 设置复选框所在列的宽度为60像素
+    columnWidth: 60,
+
+    // getCheckboxProps 是一个函数，返回每一条记录的 checkbox 属性配置，这里禁用了 id 等于5的行的复选框
+    getCheckboxProps: (record: { id: number; }) => ({
+    }),
+
+    // 设置当前选中的行键，与 selectedRowKeys 状态保持同步
+    selectedRowKeys,
+
+    // 指定选择类型为复选框形式
+    type: 'checkbox',
+
+    // onChange 回调会在用户更改选中项时触发，更新 selectedRowKeys 状态并打印变化后的选中信息
+    onChange: (selectedRowKeys: any, selectedRows: any) => {
+      console.log(selectedRowKeys, selectedRows);
+      setSelectedRowKeys(selectedRowKeys);
+      setSelectedRows(selectedRows);
+    },
+
+    // onSelect 回调会在用户单独勾选或取消勾选某一行时触发，打印被操作的记录、选中状态以及所有已选中的行信息
+    onSelect: (record: any, selected: any, selectedRows: any, nativeEvent: any) => {
+      console.log(record, selected, selectedRows);
+    },
+
+    // onSelectAll 回调会在用户全选/反选所有行时触发，打印全选状态、所有已选中的行以及本次改变所涉及的行集合
+    onSelectAll: (selected: any, selectedRows: any, changeRows: any) => {
+      console.log(selected, selectedRows, changeRows);
+    },
+    rowRemoveVisible: true,
+    onRowRemove: (e: any, row: any, rowIndex: any, realRowIndex: any) => {
+      console.log('rowRemove', e, row, rowIndex, realRowIndex);
+      console.log(uNetwork);
+    }
+  };
   // 定义一个名为setUNetworkData的函数，参数为request
   const uNetworkSet = new Set(); // Create a Set to store unique URLs
   const setUNetworkData = function (entry: any) {
@@ -482,9 +520,10 @@ export default () => {
 
   const metersphere_import = () => {
     const requestBodyList = []; // 创建一个空数组
-    for (let i = 0; i < uNetwork.length; i++) {
-      const postData = uNetwork[i].request.postData || '';
-      const url = new URL(uNetwork[i].request.url);
+    for (let i = 0; i < selectedRows.length; i++) {
+      console.log(selectedRows[i]);
+      const postData = selectedRows[i].request.postData || '';
+      const url = new URL(selectedRows[i].request.url);
       const uuid = uuidv4();
       const requestBody = {
       };
@@ -497,7 +536,7 @@ export default () => {
       // @ts-ignore
       requestBody.status = 'Underway';
       // @ts-ignore
-      requestBody.method = uNetwork[i].request.method;
+      requestBody.method = selectedRows[i].request.method;
       // @ts-ignore
       requestBody.userId = 'admin';
       // @ts-ignore
@@ -522,7 +561,7 @@ export default () => {
         enabled: true,
         $type: 'Sampler',
         protocol: 'HTTP',
-        method: uNetwork[i].request.method,
+        method: selectedRows[i].request.method,
         path: url.pathname,
         autoRedirects: false,
         followRedirects: true,
@@ -667,6 +706,7 @@ export default () => {
       dataSource={filteredDataSource}
       visibleHeight={window.innerHeight - 50}
       rowHeight={24}
+      rowSelection={rowSelection}
       estimatedRowHeight={24}
       locale={{
         emptyText: <div style={{ textAlign: 'center' }}>
