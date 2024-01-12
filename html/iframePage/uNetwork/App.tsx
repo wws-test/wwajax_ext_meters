@@ -49,19 +49,42 @@ function getDataFromIndexedDB() {
       const transaction = db.transaction('myObjectStore', 'readonly');
       const objectStore = transaction.objectStore('myObjectStore');
 
+      // 创建两个获取数据的请求
       const getRequest = objectStore.get('projectid');
+      const getKeyRequest = objectStore.get('user');
 
-      getRequest.onsuccess = function(event: { target: { result: any; }; }) {
-        const data = event.target.result;
-        if (data) {
-          resolve(data);
+      // 使用Promise.all来等待两个请求都成功完成
+      Promise.all([
+        new Promise((resolve, reject) => {
+          getRequest.onsuccess = function(event: { target: { result: unknown; }; }) {
+            resolve(event.target.result);
+          };
+          getRequest.onerror = function() {
+            reject(new Error('无法获取projectid'));
+          };
+        }),
+        new Promise((resolve, reject) => {
+          getKeyRequest.onsuccess = function(event: { target: { result: unknown; }; }) {
+            resolve(event.target.result);
+          };
+          getKeyRequest.onerror = function() {
+            reject(new Error('无法获取user'));
+          };
+        })
+      ]).then(values => {
+        // values数组包含了两个请求的结果
+        const [projectData, userData] = values;
+        if (projectData) {
+          // @ts-ignore
+          resolve({ projectid: projectData.value, user: userData.value });
         } else {
-          reject(new Error('Value not found in IndexedDB'));
+          reject(new Error('在IndexedDB中未找到projectid的值'));
         }
-      };
+      }).catch(error => {
+        reject(error);
+      });
 
-      // @ts-ignore
-      transaction.oncomplete = function(event) {
+      transaction.oncomplete = function() {
         db.close();
       };
     };
@@ -521,15 +544,18 @@ export default () => {
   const metersphere_import = () => {
     const requestBodyList = []; // 创建一个空数组
     for (let i = 0; i < selectedRows.length; i++) {
-      console.log(selectedRows[i]);
       const postData = selectedRows[i].request.postData || '';
       const url = new URL(selectedRows[i].request.url);
       const uuid = uuidv4();
       const requestBody = {
       };
-      getDataFromIndexedDB().then(async data => {
+      // @ts-ignore
+      getDataFromIndexedDB().then(async ( data ) => {
+        console.log(data);
         // @ts-ignore
-        requestBody.projectId = data.value;
+        requestBody.projectId = data.projectid;
+        // @ts-ignore
+        requestBody.userId = data.user;
       });
       // @ts-ignore
       requestBody.name = url.pathname;
@@ -537,8 +563,6 @@ export default () => {
       requestBody.status = 'Underway';
       // @ts-ignore
       requestBody.method = selectedRows[i].request.method;
-      // @ts-ignore
-      requestBody.userId = 'admin';
       // @ts-ignore
       requestBody.url = '';
       // @ts-ignore
@@ -659,7 +683,7 @@ export default () => {
       };
       requestBodyList.push(requestBody);
     }
-    console.log(requestBodyList);
+    console.log('requestBodyList', requestBodyList);
     fetchData(requestBodyList);
 
   };

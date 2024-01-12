@@ -15,11 +15,16 @@ chrome.devtools.panels.create('U-Network', 'icon.png', '../html/iframePage/dist/
       const objectStore = transaction.objectStore('myObjectStore');
 
       const data = { key: 'projectid', value: '00bac8fa-6c80-492a-83d7-8f74d5846e80' };
+      const user= {key:'user',value:'xiaojing'}
       const request = objectStore.put(data);
+      const request2 = objectStore.put(user);
 
       request.onsuccess = function(event) {
         console.log('Value is set in IndexedDB');
       };
+      request2.onsuccess = function(event) {
+        console.log('Value is set in IndexedDB1');
+      }
 
       transaction.oncomplete = function(event) {
         db.close();
