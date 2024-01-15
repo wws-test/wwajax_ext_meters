@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh">
+<head>
+    <meta charset="utf-8">
+    <title>扩展程序选项</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+        }
+        #options-form {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #options-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        #options-form input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-sizing: border-box; /* 防止输入框超出容器宽度 */
+        }
+        #options-form button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 0 auto;
+        }
+        #options-form button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<form id="options-form">
+    <label for="input1">项目ID：</label>
+    <input type="text" id="input1" name="input1" />
+    <label for="input2">人员ID：</label>
+    <input type="text" id="input2" name="input2" />
+    <button type="submit">保存</button>
+</form>
+<script src="options.js"></script>
+</body>
+</html>
