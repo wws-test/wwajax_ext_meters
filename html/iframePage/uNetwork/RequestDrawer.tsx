@@ -34,7 +34,7 @@ function getDataFromIndexedDB() {
     request.onsuccess = function(event) {
       // @ts-ignore
       const db = event.target.result;
-      const transaction = db.transaction('myObjectStore', 'readonly');
+      const transaction = db.transaction('myObjectStore', 'readwrite');
       const objectStore = transaction.objectStore('myObjectStore');
 
       const getRequest = objectStore.get('projectid');

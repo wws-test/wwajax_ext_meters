@@ -33,7 +33,7 @@ function saveSettings(projectidValue, userValue) {
 
 // 定义函数loadSettings，用于加载设置
 function loadSettings() {
-    const transaction = db.transaction([storeName], 'readonly');
+    const transaction = db.transaction([storeName], 'readwrite');
     const store = transaction.objectStore(storeName);
     // 加载projectid
     const projectidRequest = store.get('projectid');
