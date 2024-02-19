@@ -267,6 +267,7 @@ export default (props: RequestDrawerProps) => {
       requestBody.moduleId = '';
       requestBody.modulePath = '/未规划接口';
       requestBody.remark = '';
+      requestBody.description = 'query参数在这里' + url.search;
       requestBody.tags = '';
       requestBody.request = {
         id: uuid,
@@ -339,7 +340,7 @@ export default (props: RequestDrawerProps) => {
         postSize: 0,
         ruleSize: 0
       };
-      requestBody.path = url.pathname + url.search;
+      requestBody.path = url.pathname;
       requestBody.addFields = [];
       requestBody.editFields = [];
       requestBody.id = uuid;
