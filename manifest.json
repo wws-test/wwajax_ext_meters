@@ -1,7 +1,7 @@
 {
   "name": "tester Tools",
   "version": "0.0.9",
-  "description": "Modify the response text of Ajax requests",
+  "description": "内部测试工具",
   "manifest_version": 3,
   "declarative_net_request": {
     "rule_resources": []

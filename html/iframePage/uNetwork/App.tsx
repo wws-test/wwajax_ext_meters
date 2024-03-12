@@ -349,7 +349,8 @@ export default () => {
           projectId: ''
         };
         // @ts-ignore
-        requestBody.projectId = data.value;
+        requestBody.projectId = data.projectid;
+        console.log('requestBody', requestBody);
         const apiUrl = `http://10.50.3.224:8081/project/addRedisInterface`;
         try {
           const response = await fetch(apiUrl, {
