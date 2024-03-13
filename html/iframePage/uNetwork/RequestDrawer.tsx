@@ -30,7 +30,7 @@ const setHeaders = (s: any, accessKey: string, secretKey: string, ContentType = 
 
 function getDataFromIndexedDB() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open('myDatabase', 1);
+        const request = indexedDB.open('myDatabase', 2);
 
         request.onsuccess = function (event) {
             // @ts-ignore
