@@ -9,14 +9,14 @@ const storeName = 'myObjectStore';
 
 // 定义函数openDB，用于打开数据库并加载设置
 function openDB() {
-    let request = indexedDB.open(dbName);
+    let request = indexedDB.open(dbName, 2);
 
-    request.onsuccess = function(event) {
+    request.onsuccess = function (event) {
         db = event.target.result;
         loadSettings();
     };
 
-    request.onerror = function(event) {
+    request.onerror = function (event) {
         console.error('Database error:', event.target.errorCode);
     };
 }
@@ -26,9 +26,10 @@ function saveSettings(projectidValue, userValue) {
     const transaction = db.transaction([storeName], 'readwrite');
     const store = transaction.objectStore(storeName);
     // 保存projectid
-    store.put({ key: 'projectid', value: projectidValue });
+    store.put({key: 'projectid', value: projectidValue});
     // 保存user
-    store.put({ key: 'user', value: userValue });
+    store.put({key: 'user', value: userValue});
+    alert('保存成功');
 }
 
 // 定义函数loadSettings，用于加载设置
@@ -40,13 +41,13 @@ function loadSettings() {
     // 加载user
     const userRequest = store.get('user');
 
-    projectidRequest.onsuccess = function() {
+    projectidRequest.onsuccess = function () {
         if (projectidRequest.result) {
             document.getElementById('input1').value = projectidRequest.result.value;
         }
     };
 
-    userRequest.onsuccess = function() {
+    userRequest.onsuccess = function () {
         if (userRequest.result) {
             document.getElementById('input2').value = userRequest.result.value;
         }
@@ -55,7 +56,7 @@ function loadSettings() {
 
 document.addEventListener('DOMContentLoaded', openDB);
 
-document.getElementById('options-form').addEventListener('submit', function(event) {
+document.getElementById('options-form').addEventListener('submit', function (event) {
     event.preventDefault();
     saveSettings(document.getElementById('input1').value, document.getElementById('input2').value);
 });
