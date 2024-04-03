@@ -4,6 +4,35 @@ import {FilterOutlined} from '@ant-design/icons';
 import './RequestDrawer.css';
 import * as CryptoJS from 'crypto-js';
 import {v4 as uuidv4} from 'uuid';
+import ReactMarkdown from 'react-markdown';
+
+async function sendAIRequest(content: any) {
+    console.log("content", content);
+    const apiKey = 'sk-eMlQ3QJmo3Z4f0l5G0AgCm5dELVDqFynbiN7CwPP6BinVUoO'; // 请替换为您的Moonshot API密钥
+    const url = 'https://api.moonshot.cn/v1/chat/completions';
+    const model = 'moonshot-v1-8k';
+    const messages = [
+        {
+            role: 'system',
+            content: '我会输入一些接口信息，你要帮我生成成接口的文档解释（不要重复输出接口信息直接详细阐述接口的作用接口即可），要多角度推断该接口的作用，特别是从路径信息的取名方式 入参字段以及返回的数据 输出markdown格式 正常排版即可 。'
+        },
+        {role: 'user', content: content}
+    ];
+    const temperature = 0.3;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({model, messages, temperature})
+    });
+
+    const result = await response.json();
+    console.log(result.choices[0].message.content);
+    return result.choices[0].message.content;
+}
 
 const aesEncrypt = (text: string, secretKey: string, iv: string): string => {
     // @ts-ignore
@@ -163,10 +192,8 @@ export default (props: RequestDrawerProps) => {
         let text = '';
         try {
             text = JSON.stringify(JSON.parse(value), null, 4);  // 将字符串解析为JSON对象，再将JSON对象转换为格式化后的字符串
-            console.log(' 解析成功', text);
         } catch (e) {
             text = value;  // 如果解析失败，则直接使用原始字符串
-            console.log('解析失败', e);
         }
         return text;
     };
@@ -215,10 +242,51 @@ export default (props: RequestDrawerProps) => {
                     setResponse(content);
                 });
             }
-        }, []);
+        }, [drawerOpen, record.getContent]);
         return <>
             <pre>{formatText(response)}</pre>
         </>;
+    };
+    const Assertion = () => {
+        const [response, setResponse] = useState('');
+        useEffect(() => {
+            if (drawerOpen && record.getContent) {
+                record.getContent((content: string) => {
+                    setResponse(content);
+                });
+            }
+        }, [drawerOpen, record.getContent]);
+
+        const [responseContent, setResponseContent] = useState("");
+
+        useEffect(() => {
+            console.log("发送AI请求:", `${JSON.stringify(record.request)}`, response);
+            sendAIRequest(`${JSON.stringify(record.request.queryString) + response}`)
+                .then((result) => {
+                    // @ts-ignore
+                    if (result) {
+                        console.log("收到响应:", result);
+                        setResponseContent(result); // 更新响应内容
+                    } else {
+                        console.log("无效的响应");
+                        // 处理无效的响应
+                    }
+                })
+                .catch((error) => {
+                    console.log("请求错误:", error);
+                    // 处理错误
+                });
+        }, [record, response]);
+
+        if (responseContent) {
+            return (
+                <ReactMarkdown children={responseContent}/>
+            )
+        } else {
+            return (
+                <pre>loading...</pre>
+            );
+        }
     };
     const CustomPayload = (props: { path: string }) => {
         const {path} = props;
@@ -469,6 +537,13 @@ export default (props: RequestDrawerProps) => {
                     key: '4',
                     children: <Wrapper><CustomPayload path={record.request.url}/></Wrapper>,
                 }
+                ,
+
+                {
+                    label: `AI解析`,
+                    key: '5',
+                    children: <Wrapper><Assertion/></Wrapper>,
+                },
             ]}
         />
     </Drawer>;
