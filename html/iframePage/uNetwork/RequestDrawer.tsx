@@ -1,5 +1,5 @@
 import {Button, Divider, Drawer, Tabs} from 'antd';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {FilterOutlined} from '@ant-design/icons';
 import './RequestDrawer.css';
 import * as CryptoJS from 'crypto-js';
@@ -8,8 +8,8 @@ import ReactMarkdown from 'react-markdown';
 
 async function sendAIRequest(content: any) {
     console.log("content", content);
-    const apiKey = 'sk-eMlQ3QJmo3Z4f0l5G0AgCm5dELVDqFynbiN7CwPP6BinVUoO'; // 请替换为您的Moonshot API密钥
-    const url = 'https://api.moonshot.cn/v1/chat/completions';
+    const apiKey = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsImV4cCI6MTcxOTg4Nzg3OCwiaWF0IjoxNzEyMTExODc4LCJqdGkiOiJjbzZjMjFrdWR1NmYxcW1hMjRiMCIsInR5cCI6InJlZnJlc2giLCJzdWIiOiJjbmlpaGlwa3FxNGdxMWU5anFqZyIsInNwYWNlX2lkIjoiY25paWhpcGtxcTRncTFlOWpxajAiLCJhYnN0cmFjdF91c2VyX2lkIjoiY25paWhpcGtxcTRncTFlOWpxaWcifQ.G5DXRWN8rImpjmG4M-9xSl5G_3kLf2ZL1jAR_Y_ZwkuxqkZJ6SQU3yVsG_5-QeuqyncAZCFvl3da2Z0N_rzgPQ'; // 请替换为您的Moonshot API密钥
+    const url = 'http://10.50.3.213:8000/v1/chat/completions';
     const model = 'moonshot-v1-8k';
     const messages = [
         {
@@ -26,7 +26,7 @@ async function sendAIRequest(content: any) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify({model, messages, temperature})
+        body: JSON.stringify({model, messages})
     });
 
     const result = await response.json();
@@ -258,25 +258,30 @@ export default (props: RequestDrawerProps) => {
         }, [drawerOpen, record.getContent]);
 
         const [responseContent, setResponseContent] = useState("");
+        const prevResponseRef = useRef();
 
         useEffect(() => {
-            console.log("发送AI请求:", `${JSON.stringify(record.request)}`, response);
-            sendAIRequest(`${JSON.stringify(record.request.queryString) + response}`)
-                .then((result) => {
-                    // @ts-ignore
-                    if (result) {
-                        console.log("收到响应:", result);
-                        setResponseContent(result); // 更新响应内容
-                    } else {
-                        console.log("无效的响应");
-                        // 处理无效的响应
-                    }
-                })
-                .catch((error) => {
-                    console.log("请求错误:", error);
-                    // 处理错误
-                });
-        }, [record, response]);
+            if (response && response !== prevResponseRef.current) {
+                console.log("发送AI请求:", `${JSON.stringify(record.request)}`, response);
+                sendAIRequest(`${JSON.stringify(record.request.url) + JSON.stringify(record.request.postData) + response}`)
+                    .then((result) => {
+                        // @ts-ignore
+                        if (result) {
+                            console.log("收到响应:", result);
+                            setResponseContent(result); // 更新响应内容
+                        } else {
+                            console.log("无效的响应");
+                            // 处理无效的响应
+                        }
+                    })
+                    .catch((error) => {
+                        console.log("请求错误:", error);
+                        // 处理错误
+                    });
+                // @ts-ignore
+                prevResponseRef.current = response;
+            }
+        }, [response]);
 
         if (responseContent) {
             return (
@@ -509,7 +514,7 @@ export default (props: RequestDrawerProps) => {
                         {/* 使用CSS样式设置间距 */}
                         <Button
                             type="primary"
-                            onClick={() => commit(record)}
+                            onClick={() => commit()}
                         >
                             提交
                         </Button>
@@ -533,14 +538,7 @@ export default (props: RequestDrawerProps) => {
                     children: <Wrapper><Response/></Wrapper>,
                 },
                 {
-                    label: `接口文档`,
-                    key: '4',
-                    children: <Wrapper><CustomPayload path={record.request.url}/></Wrapper>,
-                }
-                ,
-
-                {
-                    label: `AI解析`,
+                    label: `AI接口分析`,
                     key: '5',
                     children: <Wrapper><Assertion/></Wrapper>,
                 },
