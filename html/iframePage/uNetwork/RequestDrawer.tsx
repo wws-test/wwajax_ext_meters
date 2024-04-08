@@ -5,6 +5,7 @@ import './RequestDrawer.css';
 import * as CryptoJS from 'crypto-js';
 import {v4 as uuidv4} from 'uuid';
 import ReactMarkdown from 'react-markdown';
+import ClipboardCopy from './ClipboardCopy';
 
 async function sendAIRequest(content: any) {
     console.log("content", content);
@@ -15,6 +16,34 @@ async function sendAIRequest(content: any) {
         {
             role: 'system',
             content: '我会输入一些接口信息，你要帮我生成成接口的文档解释（不要重复输出接口信息直接详细阐述接口的作用接口即可），要多角度推断该接口的作用，特别是从路径信息的取名方式 入参字段以及返回的数据 输出markdown格式 正常排版即可 。'
+        },
+        {role: 'user', content: content}
+    ];
+    const temperature = 0.3;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({model, messages})
+    });
+
+    const result = await response.json();
+    console.log(result.choices[0].message.content);
+    return result.choices[0].message.content;
+}
+
+async function sendAIRequest1(content: any) {
+    console.log("content", content);
+    const apiKey = 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsImV4cCI6MTcxOTg4Nzg3OCwiaWF0IjoxNzEyMTExODc4LCJqdGkiOiJjbzZjMjFrdWR1NmYxcW1hMjRiMCIsInR5cCI6InJlZnJlc2giLCJzdWIiOiJjbmlpaGlwa3FxNGdxMWU5anFqZyIsInNwYWNlX2lkIjoiY25paWhpcGtxcTRncTFlOWpxajAiLCJhYnN0cmFjdF91c2VyX2lkIjoiY25paWhpcGtxcTRncTFlOWpxaWcifQ.G5DXRWN8rImpjmG4M-9xSl5G_3kLf2ZL1jAR_Y_ZwkuxqkZJ6SQU3yVsG_5-QeuqyncAZCFvl3da2Z0N_rzgPQ'; // 请替换为您的Moonshot API密钥
+    const url = 'http://10.50.3.213:8000/v1/chat/completions';
+    const model = 'moonshot-v1-8k';
+    const messages = [
+        {
+            role: 'system',
+            content: '我会输入一些接口信息，你要帮我生成成接口的pytest用例（需要部分定制）发送接口要用这种形式myrequest.request_send("Method", \'DescribeAuditDbTypes(取url最后一个单词)\', data=data)  。 myassert.equal(res["code"], "200")\n' + '断言部分这样写死即可 发送接口前加入 with allure.step()内容智能生成  还有add_title() 以及add_desc() 内容智能生成 只需要专注生成主函数部分 导入以及main部分不需要生成 还有不需要实例化myassert 以及myrequest  只需要生成函数部分 不需要输出说明文字'
         },
         {role: 'user', content: content}
     ];
@@ -293,6 +322,59 @@ export default (props: RequestDrawerProps) => {
             );
         }
     };
+    const Assertion1 = () => {
+        const [response, setResponse] = useState('');
+        useEffect(() => {
+            if (drawerOpen && record.getContent) {
+                record.getContent((content: string) => {
+                    setResponse(content);
+                });
+            }
+        }, [drawerOpen, record.getContent]);
+
+        const [responseContent, setResponseContent] = useState("");
+        const prevResponseRef = useRef();
+
+        useEffect(() => {
+            if (response && response !== prevResponseRef.current) {
+                console.log("发送AI请求:", `${JSON.stringify(record.request)}`, response);
+                sendAIRequest1(`${JSON.stringify(record.request.url) + JSON.stringify(record.request.postData) + response}`)
+                    .then((result) => {
+                        // @ts-ignore
+                        if (result) {
+                            console.log("收到响应:", result);
+                            setResponseContent(result); // 更新响应内容
+                        } else {
+                            console.log("无效的响应");
+                            // 处理无效的响应
+                        }
+                    })
+                    .catch((error) => {
+                        console.log("请求错误:", error);
+                        // 处理错误
+                    });
+                // @ts-ignore
+                prevResponseRef.current = response;
+            }
+        }, [response]);
+
+        if (responseContent) {
+            return (
+                <div>
+                    <ReactMarkdown children={responseContent}/>
+                    {responseContent ? (
+                        <ClipboardCopy copyText={responseContent}/>
+                    ) : (
+                        <pre>loading...</pre>
+                    )}
+                </div>
+            )
+        } else {
+            return (
+                <pre>loading...</pre>
+            );
+        }
+    };
     const CustomPayload = (props: { path: string }) => {
         const {path} = props;
         const url = new URL(path);
@@ -541,6 +623,11 @@ export default (props: RequestDrawerProps) => {
                     label: `AI接口分析`,
                     key: '5',
                     children: <Wrapper><Assertion/></Wrapper>,
+                },
+                {
+                    label: `AI用例生成`,
+                    key: '6',
+                    children: <Wrapper><Assertion1/></Wrapper>,
                 },
             ]}
         />
