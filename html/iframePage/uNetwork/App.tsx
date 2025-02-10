@@ -14,8 +14,10 @@ import 'antd/dist/antd.css';
 import './App.css';
 import RequestDrawer from './RequestDrawer';
 import {AjaxDataListObject, defaultInterface, DefaultInterfaceObject} from '../common/value';
-import * as CryptoJS from 'crypto-js';
-import {v4 as uuidv4} from 'uuid';
+import {HeadersUtil, ENCRYPTION_CONFIG} from './utils/encryption';
+import {ChromeStorageUtil} from './utils/db';
+import { strToRegExp, getChromeLocalStorage } from './utils/common';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddInterceptorParams {
     ajaxDataList: AjaxDataListObject[],
@@ -23,6 +25,37 @@ interface AddInterceptorParams {
     groupIndex?: number,
     request: string,
     responseText: string
+}
+
+interface NetworkEntry {
+  request: {
+    url: string;
+    method: string;
+  };
+  response: {
+    status: string;
+  };
+  time: number;
+}
+
+interface RequestBodyItem {
+  projectId: string;
+  userId: string;
+  name: string;
+  status: string;
+  method: string;
+  url: string;
+  protocol: string;
+  environmentId: string;
+  moduleId: string;
+  modulePath: string;
+  remark: string;
+  description: string;
+  tags: string;
+  path: string;
+  addFields: any[];
+  editFields: any[];
+  id: string;
 }
 
 const aesEncrypt = (text: string, secretKey: string, iv: string): string => {
@@ -105,10 +138,10 @@ function getDataFromIndexedDB() {
 
 const fetchData = async (requestBodyList: any) => {
     let s = {headers: {}}; // 创建一个空的请求头对象    const url = new URL(record.request.url);
-    s = setHeaders(s, 'OjoTCHX6sfhcWMq6', '3kT6tWHbwa1jOyGY'); // 设置请求头
+    s = setHeaders(s, 'mByqaSdYnUaHWY9i', 'nZYPci3jhJJoYzU2'); // 设置请求头
     getDataFromIndexedDB().then(async data => {
 
-        const apiUrl = `http://10.50.3.224:8081/api/definition/Bulk_import_created`;
+        const apiUrl = `https://metersphere.chintanneng.com/api/definition/Bulk_import_created`;
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -128,7 +161,7 @@ const fetchData = async (requestBodyList: any) => {
 
 // "/^t.*$/" or "^t.*$" => new RegExp
 // 定义一个函数，将字符串转换为正则表达式
-const strToRegExp = (regStr: string) => {
+const strToRegExp1 = (regStr: string) => {
     // 初始化一个空的正则表达式
     let regexp = new RegExp('');
     try {
@@ -273,7 +306,7 @@ export default () => {
         },
 
         // onSelect 回调会在用户单独勾选或取消勾选某一行时触发，打印被操作的记录、选中状态以及所有已选中的行信息
-        onSelect: (record: any, selected: any, selectedRows: any, nativeEvent: any) => {
+        onSelect: (record: any, selected: any, selectedRows: any) => {
             console.log(record, selected, selectedRows);
         },
 
@@ -343,46 +376,42 @@ export default () => {
         });
     });
     const compare = () => {
-        let s = {headers: {}}; // 创建一个空的请求头对象
-        s = setHeaders(s, 'TkA1lh4Mqc4J19Fg', 'BWtRQJgZswbGOMi5'); // 设置请求头
         const fetchData = async () => {
-            getDataFromIndexedDB().then(async data => {
-                const uNetworkList = Array.from(uNetwork).map(entry => {
-                    // @ts-ignore
+            try {
+                const data = await ChromeStorageUtil.getData();
+                const uNetworkList = Array.from(uNetwork as NetworkEntry[]).map((entry: NetworkEntry) => {
                     const url = new URL(entry.request.url);
                     return url.pathname;
                 });
                 console.log('uNetworkList', uNetworkList);
+                
                 const requestBody = {
                     paths: uNetworkList,
-                    projectId: ''
+                    projectId: data.projectid
                 };
-                // @ts-ignore
-                requestBody.projectId = data.projectid;
-                console.log('requestBody', requestBody);
-                const apiUrl = `http://10.50.3.224:8081/project/addRedisInterface`;
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        body: JSON.stringify(requestBody),
-                        headers: Object.assign({}, s.headers),
-                    });
-                    const jsonData = await response.json();
-                    console.log('jsonData', jsonData);
-                    // 从返回的jsonData中提取data数组
-                    const dataToCompare = jsonData.data;
-                    console.log('dataToCompare', dataToCompare);
-                    // 循环查找在uNetworkList中的序列号
-                    const comparedRow = dataToCompare.map((item: string) => {
-                        const index = uNetworkList.findIndex((path) => path === item);
-                        return index;
-                    });
-                    setComparedRows(comparedRow);
-                } catch (error) {
-                    console.error(error);
-                }
-            });
 
+                const s = HeadersUtil.setHeaders(ENCRYPTION_CONFIG);
+                const apiUrl = 'https://metersphere.chintanneng.com/project/addRedisInterface';
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(requestBody),
+                    headers: s.headers,
+                });
+
+                const jsonData = await response.json();
+                console.log('jsonData', jsonData);
+                
+                const dataToCompare = jsonData.data;
+                console.log('dataToCompare', dataToCompare);
+                
+                const comparedRow = dataToCompare.map((item: string) => {
+                    const index = uNetworkList.findIndex((path) => path === item);
+                    return index;
+                });
+                setComparedRows(comparedRow);
+            } catch (error) {
+                console.error(error);
+            }
         };
         fetchData();
     };
@@ -396,12 +425,10 @@ export default () => {
             getContent: (arg0: (content: any) => void) => void;
         }
     ) => {
-        // 获取请求的URL，并去除查询参数
         const requestUrl = record.request.url.split('?')[0];
-        // 从URL中匹配出主机名之后的路径
         const matchUrl = requestUrl.match('(?<=//.*/).+');
-        console.log('requestUrl:', requestUrl); // 输出requestUrl的值
-        console.log('matchUrl:', matchUrl && matchUrl[0]); // 输出matchUrl的值
+        console.log('requestUrl:', requestUrl);
+        console.log('matchUrl:', matchUrl && matchUrl[0]);
         if (record.getContent) {
             record.getContent((content) => {
                 handleAddInterceptor({
@@ -422,20 +449,18 @@ export default () => {
         {request, responseText}: { request: string, responseText: string }
     ) => {
         try {
-            // 从Chrome本地存储中获取ajaxDataList和iframeVisible的值，如果没有则赋值为空数组和undefined
             const {
                 ajaxDataList = [],
                 iframeVisible
-            }: AddInterceptorParams | any = await getChromeLocalStorage(['iframeVisible', 'ajaxDataList']);
-            // 将ajaxDataList中的每个item的interfaceList取出来，如果不存在则赋值为空数组
+            } = await ChromeStorageUtil.get(['iframeVisible', 'ajaxDataList']);
+            
             const interfaceList = ajaxDataList.flatMap((item: {
                 interfaceList: DefaultInterfaceObject[];
             }) => item.interfaceList || []);
-            // 判断interfaceList中是否存在与当前请求相同的request，如果存在则返回true，否则返回false
-            const hasIntercepted = interfaceList.some((v: { request: string | null; }) => v.request === request);
-            // 如果已经拦截过该请求
+            
+            const hasIntercepted = interfaceList.some((v: { request: string | null }) => v.request === request);
+            
             if (hasIntercepted) {
-                // 弹出确认框，询问是否添加另一个拦截器
                 const confirmed = await new Promise((resolve) => {
                     Modal.confirm({
                         title: '请求已被截获',
@@ -444,17 +469,14 @@ export default () => {
                         onCancel: () => resolve(false),
                     });
                 });
-                // 如果确认添加另一个拦截器
+                
                 if (confirmed) {
-                    // 调用addInterceptorIfNeeded函数，传入相关参数
-                    await addInterceptorIfNeeded({ajaxDataList, iframeVisible, request, responseText});
+                    await addInterceptorIfNeeded({ ajaxDataList, iframeVisible, request, responseText });
                 }
             } else {
-                // 调用addInterceptorIfNeeded函数，传入相关参数
-                await addInterceptorIfNeeded({ajaxDataList, iframeVisible, request, responseText});
+                await addInterceptorIfNeeded({ ajaxDataList, iframeVisible, request, responseText });
             }
         } catch (error) {
-            // 捕获错误并打印到控制台
             console.error(error);
         }
     };
@@ -563,208 +585,114 @@ export default () => {
     };
 
     const metersphere_import = () => {
-        const requestBodyList = []; // 创建一个空数组
-        for (let i = 0; i < selectedRows.length; i++) {
-            const postData = selectedRows[i].request.postData || '';
-            const url = new URL(selectedRows[i].request.url);
+        const requestBodyList = selectedRows.map((record: NetworkEntry) => {
+            const url = new URL(record.request.url);
             const uuid = uuidv4();
-            const requestBody = {};
-            // @ts-ignore
-            getDataFromIndexedDB().then(async (data) => {
-                console.log(data);
-                // @ts-ignore
-                requestBody.projectId = data.projectid;
-                // @ts-ignore
-                requestBody.userId = data.user;
-            });
-            // @ts-ignore
-            requestBody.name = url.pathname;
-            // @ts-ignore
-            requestBody.status = 'Underway';
-            // @ts-ignore
-            requestBody.method = selectedRows[i].request.method;
-            // @ts-ignore
-            requestBody.url = '';
-            // @ts-ignore
-            requestBody.protocol = 'HTTP';
-            // @ts-ignore
-            requestBody.environmentId = '';
-            // @ts-ignore
-            requestBody.moduleId = 'Bulk_import';
-            // @ts-ignore
-            requestBody.modulePath = '/未规划接口';
-            // @ts-ignore
-            requestBody.remark = '';
-            // @ts-ignore
-            requestBody.tags = '';
-            // @ts-ignore
-            requestBody.request = {
-                id: uuid,
-                type: 'HTTPSamplerProxy',
+            return {
+                projectId: '',
                 name: url.pathname,
-                enabled: true,
-                $type: 'Sampler',
+                status: 'Underway',
+                method: record.request.method,
+                userId: '',
+                url: '',
                 protocol: 'HTTP',
-                method: selectedRows[i].request.method,
+                environmentId: '',
+                moduleId: '',
+                modulePath: '/未规划接口',
+                remark: '',
+                description: 'query参数在这里' + url.search,
+                tags: '',
                 path: url.pathname,
-                autoRedirects: false,
-                followRedirects: true,
-                useKeepalive: true,
-                doMultipartPost: false,
-                connectTimeout: 60000,
-                responseTimeout: 60000,
-                body: {
-                    type: 'Raw',
-                    raw: postData.text,
-                    kvs: [],
-                    binary: []
-                },
-                arguments: [
-                    {
-                        type: 'text',
-                        enable: true,
-                        uuid: '4a0b3',
-                        contentType: 'text/plain',
-                        required: false,
-                        urlEncode: false
-                    }
-                ],
-                rest: [],
-                files: [],
-                headers: [
-                    {
-                        name: '',
-                        value: '',
-                        enable: true
-                    }
-                ],
-                hashTree: [
-                    {
-                        resourceId: '1dfb130c-bd54-40c5-b33f-1e3eca04e81c',
-                        type: 'Assertions',
-                        text: [],
-                        regex: [],
-                        jsonPath: [],
-                        jsr223: [],
-                        xpath2: [],
-                        duration: {
-                            type: 'Duration'
-                        },
-                        enable: true,
-                        document: {
-                            type: 'JSON',
-                            data: {
-                                xmlFollowAPI: false,
-                                jsonFollowAPI: false,
-                                json: [],
-                                xml: []
-                            },
-                            enable: true
-                        },
-                        clazzName: 'io.metersphere.api.dto.definition.request.assertions.MsAssertions'
-                    }
-                ],
-                clazzName: 'io.metersphere.api.dto.definition.request.sampler.MsHTTPSamplerProxy',
-                preSize: 0,
-                postSize: 0,
-                ruleSize: 0
-            };
-            // @ts-ignore
-            requestBody.path = url.pathname + url.search;
-            // @ts-ignore
-            requestBody.addFields = [];
-            // @ts-ignore
-            requestBody.editFields = [];
-            // @ts-ignore
-            requestBody.id = uuid;
-            // @ts-ignore
-            requestBody.response = {
-                headers: [
-                    {
-                        name: '',
-                        value: '',
-                        enable: true
-                    }
-                ],
-                body: {
-                    type: 'Raw',
-                    raw: 'response',
-                    kvs: [],
-                    binary: []
-                },
-                statusCode: [
-                    {
-                        name: '',
-                        value: '',
-                        enable: true
-                    }
-                ],
-                type: 'HTTP'
-            };
-            requestBodyList.push(requestBody);
-        }
-        console.log('requestBodyList', requestBodyList);
-        fetchData(requestBodyList);
+                addFields: [],
+                editFields: [],
+                id: uuid,
+            } as RequestBodyItem;
+        });
 
+        const fetchData = async () => {
+            try {
+                const data = await ChromeStorageUtil.getData();
+                requestBodyList.forEach((item: RequestBodyItem) => {
+                    item.projectId = data.projectid || '';
+                    item.userId = data.user || '';
+                });
+
+                const s = HeadersUtil.setHeaders(ENCRYPTION_CONFIG);
+                const apiUrl = 'https://metersphere.chintanneng.com/api/definition/Bulk_import_created';
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(requestBodyList),
+                    headers: s.headers,
+                });
+
+                const result = await response.json();
+                console.log('result', result);
+                alert(JSON.stringify(result, null, 2));
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        fetchData();
     };
-    return <div>
-        <div className="ajax-tools-devtools-action-bar">
-            <Button
-                type="text"
-                shape="circle"
-                danger={recording}
-                title={recording ? '停止录制网络请求' : '开始录制网络请求'}
-                icon={recording ? <PauseCircleFilled/> : <PlayCircleTwoTone/>}
-                onClick={() => setRecording(!recording)}
-            />
-            <Button
-                type="text"
-                shape="circle"
-                title="清除记录"
-                icon={<StopOutlined/>}
-                onClick={clearRecords}
-            />
-            <Button
-                type="text"
-                title="一键对比"
-                icon={<BuildFilled/>}
-                onClick={() => compare()}
-            />
-            <Button
-                type="text"
-                title="批量导入"
-                icon={<MenuUnfoldOutlined/>}
-                onClick={() => metersphere_import()}
-            />
-            <Input
-                placeholder="筛选请求"
-                size="small"
-                style={{width: 160, marginLeft: 16}}
-                onChange={(e) => setFilterKey(e.target.value)}
-            />
+    return <div className="ajax-tools-devtools">
+        <div className="ajax-tools-devtools-header">
+            <div className="ajax-tools-devtools-header-left">
+                <div className="ajax-tools-devtools-header-btn-group">
+                    {recording ? (
+                        <PauseCircleFilled
+                            className="ajax-tools-devtools-text-btn"
+                            title="Stop recording"
+                            onClick={() => setRecording(false)}
+                        />
+                    ) : (
+                        <PlayCircleTwoTone
+                            className="ajax-tools-devtools-text-btn"
+                            title="Start recording"
+                            onClick={() => setRecording(true)}
+                        />
+                    )}
+                    <StopOutlined
+                        className="ajax-tools-devtools-text-btn"
+                        title="Clear all"
+                        onClick={clearRecords}
+                    />
+                    <BuildFilled
+                        className="ajax-tools-devtools-text-btn"
+                        title="Compare with metersphere"
+                        onClick={compare}
+                    />
+                    <MenuUnfoldOutlined
+                        className="ajax-tools-devtools-text-btn"
+                        title="Import to metersphere"
+                        onClick={metersphere_import}
+                    />
+                </div>
+            </div>
+            <div className="ajax-tools-devtools-header-right">
+                <Input
+                    placeholder="Filter"
+                    value={filterKey}
+                    onChange={(e) => setFilterKey(e.target.value)}
+                />
+            </div>
         </div>
         <VTablePro
-            bordered
-            headerNotSticky
-            columns={columns}
             dataSource={filteredDataSource}
-            visibleHeight={window.innerHeight - 50}
-            rowHeight={24}
+            columns={getColumns({
+                onAddInterceptorClick,
+                onRequestUrlClick
+            })}
             rowSelection={rowSelection}
-            estimatedRowHeight={24}
-            locale={{
-                emptyText: <div style={{textAlign: 'center'}}>
-                    <p>提示正在记录网络活动 </p>
-                    <p>提示点击记录按钮，并执行请求或按下 <strong>Ctrl + R</strong> 来记录加载</p>
-                </div>
-            }}
+            rowKey="id"
+            scroll={{ y: 'calc(100vh - 80px)' }}
         />
         {
             currRecord && <RequestDrawer
-                record={currRecord}
                 drawerOpen={drawerOpen}
-                onAddInterceptorClick={onAddInterceptorClick}
+                record={currRecord}
                 onClose={() => setDrawerOpen(false)}
+                onAddInterceptorClick={onAddInterceptorClick}
             />
         }
     </div>;
