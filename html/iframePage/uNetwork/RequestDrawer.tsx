@@ -8,6 +8,17 @@ import ClipboardCopy from './ClipboardCopy';
 import { v4 as uuidv4 } from 'uuid';
 import { APIUtil }  from './utils/api';
 import { formatText } from './utils/common';
+import { JsonViewer } from '@textea/json-viewer';
+import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import json from 'react-syntax-highlighter/dist/esm/languages/hljs/json';
+import xml from 'react-syntax-highlighter/dist/esm/languages/hljs/xml';
+import javascript from 'react-syntax-highlighter/dist/esm/languages/hljs/javascript';
+
+// 注册语言
+SyntaxHighlighter.registerLanguage('json', json);
+SyntaxHighlighter.registerLanguage('xml', xml);
+SyntaxHighlighter.registerLanguage('javascript', javascript);
 
 // 定义类型
 interface AIRequestConfig {
@@ -296,18 +307,140 @@ const Payload: React.FC<{ record: any }> = ({ record }) => {
     );
 };
 
-const Response: React.FC<{ record: any, drawerOpen: boolean }> = ({ record, drawerOpen }) => {
+interface ResponseProps {
+    record: any;
+    drawerOpen: boolean;
+}
+
+const Response: React.FC<ResponseProps> = ({ record, drawerOpen }) => {
     const [response, setResponse] = useState('');
+    const [contentType, setContentType] = useState('');
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (drawerOpen && record.getContent) {
+            const contentTypeHeader = record.response.headers.find(
+                (header: { name: string; value: string }) => 
+                    header.name.toLowerCase() === 'content-type'
+            );
+            setContentType(contentTypeHeader?.value || '');
+
             record.getContent((content: string) => {
                 setResponse(content);
+                setError(null);
             });
         }
-    }, [drawerOpen, record.getContent]);
+    }, [drawerOpen, record]);
 
-    return <pre>{formatText(response)}</pre>;
+    const renderContent = () => {
+        if (error) {
+            return <div className="response-error">{error}</div>;
+        }
+
+        try {
+            // 尝试解析为JSON
+            if (contentType.includes('application/json') || (!contentType && isValidJSON(response))) {
+                const jsonData = JSON.parse(response);
+                return (
+                    <div className="json-viewer">
+                        <JsonViewer 
+                            value={jsonData}
+                            rootName={false}
+                            displayDataTypes={false}
+                            enableClipboard
+                            displaySize
+                            theme={{
+                                scheme: 'custom',
+                                author: 'custom',
+                                base00: 'transparent',
+                                base01: '#eee',
+                                base02: '#ccc',
+                                base03: '#999',
+                                base04: '#666',
+                                base05: '#333',
+                                base06: '#000',
+                                base07: '#000',
+                                base08: '#ff4d4f', // null
+                                base09: '#722ed1', // number
+                                base0A: '#fa8c16', // boolean
+                                base0B: '#52c41a', // string
+                                base0C: '#1890ff', // key
+                                base0D: '#1890ff', // brackets
+                                base0E: '#722ed1', // symbol
+                                base0F: '#ff4d4f'  // error
+                            }}
+                        />
+                    </div>
+                );
+            }
+
+            // XML内容
+            if (contentType.includes('xml')) {
+                return (
+                    <SyntaxHighlighter 
+                        language="xml" 
+                        style={docco}
+                        customStyle={{
+                            margin: 0,
+                            borderRadius: '4px'
+                        }}
+                    >
+                        {response}
+                    </SyntaxHighlighter>
+                );
+            }
+
+            // JavaScript内容
+            if (contentType.includes('javascript')) {
+                return (
+                    <SyntaxHighlighter 
+                        language="javascript" 
+                        style={docco}
+                        customStyle={{
+                            margin: 0,
+                            borderRadius: '4px'
+                        }}
+                    >
+                        {response}
+                    </SyntaxHighlighter>
+                );
+            }
+
+            // 其他类型内容
+            return (
+                <SyntaxHighlighter 
+                    language="text" 
+                    style={docco}
+                    customStyle={{
+                        margin: 0,
+                        borderRadius: '4px'
+                    }}
+                >
+                    {response}
+                </SyntaxHighlighter>
+            );
+        } catch (err) {
+            // 如果JSON解析失败，显示原始内容
+            return (
+                <SyntaxHighlighter 
+                    language="text" 
+                    style={docco}
+                    customStyle={{
+                        margin: 0,
+                        borderRadius: '4px'
+                    }}
+                >
+                    {response}
+                </SyntaxHighlighter>
+            );
+        }
+    };
+
+    return (
+        <div className="response-container">
+            {response ? renderContent() : <div className="loading">Loading...</div>}
+        </div>
+    );
 };
 
 const AIResponse: React.FC<{ record: any, drawerOpen: boolean, type: 'documentation' | 'testCase' }> = ({ 
@@ -439,6 +572,16 @@ const RequestDrawer: React.FC<RequestDrawerProps> = ({
             />
         </Drawer>
     );
+};
+
+// 辅助函数：验证字符串是否为有效的JSON
+const isValidJSON = (str: string): boolean => {
+    try {
+        JSON.parse(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
 };
 
 export default RequestDrawer;

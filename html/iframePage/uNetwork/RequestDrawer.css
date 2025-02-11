@@ -1,9 +1,203 @@
-.ajax-tools-devtools-text {
-  font-size: 12px;
-  word-break: break-all;
-  padding: 0 12px;
+.ajax-tools-devtools-drawer .ant-drawer-header {
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 16px;
 }
 
-.ajax-tools-devtools-text:hover {
-  background: #ebf5ff;
+.ajax-tools-devtools-drawer .ant-drawer-title {
+  font-size: 14px;
+  color: #262626;
+  font-weight: 500;
+}
+
+.ajax-tools-devtools-drawer .ant-drawer-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ajax-tools-devtools-drawer .ant-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ajax-tools-devtools-drawer .ant-tabs-content {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 24px;
+}
+
+.ajax-tools-devtools-drawer .ant-tabs-nav {
+  margin: 0;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ajax-tools-devtools-drawer .ant-tabs-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.ajax-tools-devtools-drawer .ant-tabs-tab-active {
+  font-weight: 500;
+}
+
+.ajax-tools-devtools-drawer pre {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 12px;
+  margin: 8px 0;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.ajax-tools-devtools-drawer .ant-divider {
+  margin: 16px 0;
+}
+
+.ajax-tools-devtools-drawer .ant-btn {
+  height: 32px;
+  padding: 4px 16px;
+  font-size: 13px;
+}
+
+.ajax-tools-devtools-drawer .ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+  box-shadow: 0 2px 0 rgba(24, 144, 255, 0.1);
+}
+
+.ajax-tools-devtools-drawer .ant-btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.response-container {
+  height: 100%;
+  position: relative;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.response-error {
+  color: #ff4d4f;
+  padding: 16px;
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.json-viewer {
+  background: #fff;
+  border-radius: 4px;
+  overflow: auto;
+  height: 100%;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+/* 自定义JSON查看器样式 */
+.json-viewer > div {
+  padding: 12px !important;
+}
+
+.json-viewer .json-viewer__copy {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.json-viewer .json-viewer__container:hover .json-viewer__copy {
+  opacity: 1;
+}
+
+.json-viewer .json-viewer__copy:hover {
+  color: #1890ff;
+}
+
+.json-viewer .json-viewer__expand-button {
+  color: #595959;
+  transition: transform 0.3s;
+}
+
+.json-viewer .json-viewer__expand-button:hover {
+  color: #1890ff;
+}
+
+.json-viewer .json-viewer__expand-button--expanded {
+  transform: rotate(90deg);
+}
+
+.json-viewer .json-viewer__value {
+  margin-left: 4px;
+}
+
+.json-viewer .json-viewer__bracket {
+  color: #595959;
+}
+
+.json-viewer .json-viewer__key {
+  color: #1890ff;
+  margin-right: 4px;
+}
+
+.json-viewer .json-viewer__value--string {
+  color: #52c41a;
+}
+
+.json-viewer .json-viewer__value--number {
+  color: #722ed1;
+}
+
+.json-viewer .json-viewer__value--boolean {
+  color: #fa8c16;
+}
+
+.json-viewer .json-viewer__value--null {
+  color: #ff4d4f;
+}
+
+/* 代码高亮器样式 */
+.response-container pre {
+  margin: 0 !important;
+  border-radius: 4px !important;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+/* 滚动条样式 */
+.response-container ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.response-container ::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.response-container ::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.response-container ::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }

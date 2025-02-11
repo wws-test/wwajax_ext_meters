@@ -1,11 +1,80 @@
+.ajax-tools-devtools {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
 
-.ajax-tools-devtools-action-bar {
-  padding: 0 12px;
-  background: #f4f6f9;
-  border-bottom: 1px solid #d1d3d8;
+.ajax-tools-devtools-header {
+  padding: 12px 16px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1;
+}
+
+.ajax-tools-devtools-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ajax-tools-devtools-header-btn-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.ajax-tools-devtools-text-btn {
+  font-size: 20px;
+  cursor: pointer;
+  color: #595959;
+  transition: all 0.3s;
 }
 
 .ajax-tools-devtools-text-btn:hover {
-  color: #2C85D9;
-  cursor: pointer;
+  color: #1890ff;
+  transform: scale(1.1);
+}
+
+.ajax-tools-devtools-header-right {
+  width: 240px;
+}
+
+.ajax-tools-devtools-table {
+  flex: 1;
+  overflow: auto;
+}
+
+.ajax-tools-devtools-table .ant-table {
+  background: #fff;
+}
+
+.ajax-tools-devtools-table .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.ajax-tools-devtools-table .ant-table-tbody > tr:hover > td {
+  background: #e6f7ff;
+}
+
+.ajax-tools-devtools-text {
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.ajax-tools-devtools-text strong {
+  color: #595959;
+  min-width: 120px;
+}
+
+.ajax-tools-devtools-text span {
+  color: #262626;
+  word-break: break-all;
 }

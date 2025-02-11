@@ -1,7 +1,9 @@
-import React, {useEffect, useRef, useState} from 'react';
+/* eslint-disable object-curly-spacing */
+/* eslint-disable indent */
+import React, { useEffect, useRef, useState } from 'react';
 // @ts-ignore
-import {VTablePro} from 'virtualized-table';
-import {Button, Input, Modal, Radio, Space} from 'antd';
+import { VTablePro } from 'virtualized-table';
+import { Button, Input, Modal, Radio, Space } from 'antd';
 import {
   BuildFilled,
   FilterOutlined,
@@ -13,9 +15,9 @@ import {
 import 'antd/dist/antd.css';
 import './App.css';
 import RequestDrawer from './RequestDrawer';
-import {AjaxDataListObject, defaultInterface, DefaultInterfaceObject} from '../common/value';
-import {HeadersUtil, ENCRYPTION_CONFIG} from './utils/encryption';
-import {ChromeStorageUtil} from './utils/db';
+import { AjaxDataListObject, defaultInterface, DefaultInterfaceObject } from '../common/value';
+import { HeadersUtil, ENCRYPTION_CONFIG } from './utils/encryption';
+import { ChromeStorageUtil } from './utils/db';
 import { strToRegExp, getChromeLocalStorage } from './utils/common';
 import { v4 as uuidv4 } from 'uuid';
 
