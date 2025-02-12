@@ -17,10 +17,10 @@ interface AIMessage {
 
 // AI配置
 const AI_CONFIG: AIRequestConfig = {
-  apiKey: 'eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsImV4cCI6MTcxOTg4Nzg3OCwiaWF0IjoxNzEyMTExODc4LCJqdGkiOiJjbzZjMjFrdWR1NmYxcW1hMjRiMCIsInR5cCI6InJlZnJlc2giLCJzdWIiOiJjbmlpaGlwa3FxNGdxMWU5anFqZyIsInNwYWNlX2lkIjoiY25paWhpcGtxcTRncTFlOWpxajAiLCJhYnN0cmFjdF91c2VyX2lkIjoiY25paWhpcGtxcTRncTFlOWpxaWcifQ.G5DXRWN8rImpjmG4M-9xSl5G_3kLf2ZL1jAR_Y_ZwkuxqkZJ6SQU3yVsG_5-QeuqyncAZCFvl3da2Z0N_rzgPQ',
-  url: 'http://10.50.3.213:8000/v1/chat/completions',
-  model: 'moonshot-v1-8k',
-  temperature: 0.3
+  apiKey: 'bce-v3/ALTAK-zpfzMedc3P9zzgKnC2tfM/a605f34329539d395c120c569a3d8fad56398338',
+  url: 'https://qianfan.baidubce.com/v2/chat/completions',
+  model: 'deepseek-v3',
+  temperature: 0.5
 };
 
 // AI系统提示
