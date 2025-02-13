@@ -566,11 +566,11 @@ const AIResponse: React.FC<{ record: any, drawerOpen: boolean, type: 'documentat
     }, [response, type, record.request]);
 
     if (!responseContent) {
-        return <pre>loading...</pre>;
+        return <div className="loading">正在生成分析结果...</div>;
     }
 
     return (
-        <div>
+        <div className={type === 'documentation' ? 'api-documentation' : ''}>
             <ReactMarkdown>{responseContent}</ReactMarkdown>
             {type === 'testCase' && <ClipboardCopy copyText={responseContent} />}
         </div>

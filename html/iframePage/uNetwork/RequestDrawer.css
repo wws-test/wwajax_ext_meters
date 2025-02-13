@@ -203,16 +203,23 @@
 }
 
 .ai-analysis-container {
-  padding: 16px;
+  padding: 24px;
   height: 100%;
   overflow: auto;
+  background: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: #2c3e50;
 }
 
 .analysis-placeholder {
   color: #8c8c8c;
   text-align: center;
-  padding: 32px;
-  font-size: 14px;
+  padding: 48px;
+  font-size: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #e9ecef;
 }
 
 .ai-analysis-container h1,
@@ -220,97 +227,168 @@
 .ai-analysis-container h3,
 .ai-analysis-container h4,
 .ai-analysis-container h5 {
-  margin-top: 24px;
+  margin-top: 32px;
   margin-bottom: 16px;
   font-weight: 600;
   line-height: 1.25;
+  color: #1a202c;
+  border-bottom: 2px solid #edf2f7;
+  padding-bottom: 8px;
 }
 
 .ai-analysis-container h1 {
-  font-size: 20px;
-  color: #262626;
+  font-size: 28px;
+  color: #2d3748;
+  background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .ai-analysis-container h2 {
-  font-size: 18px;
-  color: #262626;
+  font-size: 24px;
+  color: #2d3748;
 }
 
 .ai-analysis-container h3 {
-  font-size: 16px;
-  color: #262626;
+  font-size: 20px;
+  color: #4a5568;
 }
 
 .ai-analysis-container p {
-  margin: 8px 0;
-  line-height: 1.6;
-  color: #595959;
+  margin: 16px 0;
+  line-height: 1.8;
+  color: #4a5568;
 }
 
 .ai-analysis-container ul,
 .ai-analysis-container ol {
-  margin: 8px 0;
+  margin: 16px 0;
   padding-left: 24px;
 }
 
 .ai-analysis-container li {
-  margin: 4px 0;
-  line-height: 1.6;
-  color: #595959;
+  margin: 8px 0;
+  line-height: 1.7;
+  color: #4a5568;
+  position: relative;
+}
+
+.ai-analysis-container li::before {
+  content: "•";
+  color: #4299e1;
+  font-weight: bold;
+  position: absolute;
+  left: -18px;
 }
 
 .ai-analysis-container code {
-  background: #f5f5f5;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-  font-size: 12px;
-  color: #595959;
+  background: #f7fafc;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-family: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  color: #805ad5;
+  border: 1px solid #edf2f7;
 }
 
 .ai-analysis-container pre {
-  background: #f5f5f5;
-  padding: 12px;
-  border-radius: 4px;
+  background: #2d3748;
+  padding: 16px;
+  border-radius: 8px;
   overflow-x: auto;
-  margin: 16px 0;
+  margin: 20px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .ai-analysis-container pre code {
   padding: 0;
   background: none;
+  border: none;
+  color: #a0aec0;
 }
 
 .ai-analysis-container blockquote {
-  margin: 16px 0;
-  padding: 0 16px;
-  color: #8c8c8c;
-  border-left: 4px solid #f0f0f0;
+  margin: 20px 0;
+  padding: 12px 24px;
+  color: #718096;
+  border-left: 4px solid #4299e1;
+  background: #ebf8ff;
+  border-radius: 0 8px 8px 0;
 }
 
 .ai-analysis-container table {
   width: 100%;
-  border-collapse: collapse;
-  margin: 16px 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 24px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .ai-analysis-container th,
 .ai-analysis-container td {
-  padding: 8px 12px;
-  border: 1px solid #f0f0f0;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
   text-align: left;
 }
 
 .ai-analysis-container th {
-  background: #fafafa;
-  font-weight: 500;
+  background: #f7fafc;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.ai-analysis-container tr:nth-child(even) {
+  background: #f7fafc;
+}
+
+.ai-analysis-container tr:hover {
+  background: #ebf8ff;
 }
 
 .ai-analysis-container img {
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
-  margin: 16px 0;
+  border-radius: 8px;
+  margin: 24px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 强调重要信息的样式 */
+.ai-analysis-container strong {
+  color: #3182ce;
+  font-weight: 600;
+}
+
+/* 添加卡片式布局 */
+.ai-analysis-container > div {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.ai-analysis-container > div:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 添加动画效果 */
+.ai-analysis-container {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .json-field-wrapper {
@@ -398,4 +476,219 @@
 
 .json-viewer [data-selected="true"] > * {
     background: transparent !important;
+}
+
+/* API文档专用样式 */
+.api-documentation {
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* API 接口名称样式 */
+.api-documentation h1 {
+  font-size: 28px;
+  background: linear-gradient(120deg, #00b4db 0%, #0083b0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e6f7ff;
+}
+
+/* API 接口描述样式 */
+.api-documentation > p:first-of-type {
+  font-size: 16px;
+  color: #666;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #1890ff;
+  margin: 20px 0;
+}
+
+/* API 参数表格样式 */
+.api-documentation table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 24px 0;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.api-documentation th {
+  background: #fafafa;
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #1f2937;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.api-documentation td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.api-documentation tr:last-child td {
+  border-bottom: none;
+}
+
+.api-documentation tr:hover td {
+  background-color: #fafafa;
+}
+
+/* API 请求/响应示例样式 */
+.api-documentation pre {
+  background: #282c34;
+  color: #abb2bf;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.api-documentation pre::before {
+  content: attr(data-type);
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #1890ff;
+  color: white;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 0 8px 0 8px;
+}
+
+/* API 注意事项样式 */
+.api-documentation blockquote {
+  margin: 24px 0;
+  padding: 16px 20px;
+  background: #fff7e6;
+  border-left: 4px solid #ffa940;
+  border-radius: 4px;
+}
+
+.api-documentation blockquote p {
+  color: #d46b08;
+  margin: 0;
+}
+
+/* API 参数说明列表样式 */
+.api-documentation ul {
+  background: #fafafa;
+  padding: 20px 40px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.api-documentation ul li {
+  margin: 12px 0;
+  color: #4a5568;
+}
+
+.api-documentation ul li::before {
+  content: "•";
+  color: #1890ff;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+/* API 状态码说明样式 */
+.api-documentation .status-code {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 8px;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.api-documentation .status-success {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.api-documentation .status-error {
+  background: #fff2f0;
+  color: #ff4d4f;
+  border: 1px solid #ffccc7;
+}
+
+.api-documentation .status-warning {
+  background: #fffbe6;
+  color: #faad14;
+  border: 1px solid #ffe58f;
+}
+
+/* API 字段说明样式 */
+.api-documentation dl {
+  background: #fafafa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.api-documentation dt {
+  font-weight: 600;
+  color: #1890ff;
+  margin-top: 12px;
+}
+
+.api-documentation dd {
+  margin-left: 20px;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* API 版本信息样式 */
+.api-documentation .version-info {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 4px;
+  color: #1890ff;
+  font-size: 12px;
+  margin-left: 12px;
+}
+
+/* API 分割线样式 */
+.api-documentation hr {
+  margin: 32px 0;
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, #f0f0f0, #e6f7ff, #f0f0f0);
+}
+
+/* API 代码内联样式 */
+.api-documentation code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #d56161;
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+}
+
+/* API 重要提示样式 */
+.api-documentation .important-note {
+  background: #f9f0ff;
+  border: 1px solid #d3adf7;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.api-documentation .important-note::before {
+  content: "⚠️ 重要提示";
+  display: block;
+  font-weight: 600;
+  color: #722ed1;
+  margin-bottom: 8px;
 }

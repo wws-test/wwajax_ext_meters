@@ -24,21 +24,8 @@ const ClipboardCopy: React.FC<ClipboardCopyProps> = ({
 
   return (
     <Space style={{ marginTop: 16 }}>
-      <Button 
-        icon={<CopyOutlined />} 
-        onClick={handleCopy}
-      >
-        复制
-      </Button>
-      {showAnalyzeButton && (
-        <Button 
-          type="primary" 
-          icon={<BulbOutlined />} 
-          onClick={onAnalyze}
-        >
-          AI分析
-        </Button>
-      )}
+
+      {showAnalyzeButton}
     </Space>
   );
 };
