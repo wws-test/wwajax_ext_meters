@@ -201,3 +201,201 @@
 .response-container ::-webkit-scrollbar-thumb:hover {
   background: #999;
 }
+
+.ai-analysis-container {
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+}
+
+.analysis-placeholder {
+  color: #8c8c8c;
+  text-align: center;
+  padding: 32px;
+  font-size: 14px;
+}
+
+.ai-analysis-container h1,
+.ai-analysis-container h2,
+.ai-analysis-container h3,
+.ai-analysis-container h4,
+.ai-analysis-container h5 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ai-analysis-container h1 {
+  font-size: 20px;
+  color: #262626;
+}
+
+.ai-analysis-container h2 {
+  font-size: 18px;
+  color: #262626;
+}
+
+.ai-analysis-container h3 {
+  font-size: 16px;
+  color: #262626;
+}
+
+.ai-analysis-container p {
+  margin: 8px 0;
+  line-height: 1.6;
+  color: #595959;
+}
+
+.ai-analysis-container ul,
+.ai-analysis-container ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.ai-analysis-container li {
+  margin: 4px 0;
+  line-height: 1.6;
+  color: #595959;
+}
+
+.ai-analysis-container code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  font-size: 12px;
+  color: #595959;
+}
+
+.ai-analysis-container pre {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.ai-analysis-container pre code {
+  padding: 0;
+  background: none;
+}
+
+.ai-analysis-container blockquote {
+  margin: 16px 0;
+  padding: 0 16px;
+  color: #8c8c8c;
+  border-left: 4px solid #f0f0f0;
+}
+
+.ai-analysis-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.ai-analysis-container th,
+.ai-analysis-container td {
+  padding: 8px 12px;
+  border: 1px solid #f0f0f0;
+  text-align: left;
+}
+
+.ai-analysis-container th {
+  background: #fafafa;
+  font-weight: 500;
+}
+
+.ai-analysis-container img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+.json-field-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.json-field-wrapper .field-analyze-btn {
+  opacity: 0;
+  padding: 0 4px;
+  height: 20px;
+  min-width: 20px;
+  color: #8c8c8c;
+  transition: all 0.3s;
+}
+
+.json-field-wrapper:hover .field-analyze-btn {
+  opacity: 1;
+}
+
+.json-field-wrapper .field-analyze-btn:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.json-field-wrapper .anticon {
+  font-size: 12px;
+}
+
+.response-actions {
+  margin-top: 12px;
+  padding: 8px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+  border-radius: 0 0 4px 4px;
+}
+
+.json-viewer {
+  position: relative;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  background: #fff;
+}
+
+/* 选中状态的JSON字段样式 */
+.json-viewer [data-selected="true"] {
+  background: rgba(24, 144, 255, 0.1);
+  border-radius: 2px;
+}
+
+.selected-field-info {
+    margin: 12px 0;
+    padding: 12px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
+.selected-field-info .field-path {
+    margin-bottom: 8px;
+    color: #1890ff;
+    font-size: 13px;
+}
+
+.selected-field-info .field-value {
+    font-size: 13px;
+}
+
+.selected-field-info .field-value pre {
+    margin: 8px 0 0;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow: auto;
+}
+
+.json-viewer [data-selected="true"] {
+    background: rgba(24, 144, 255, 0.1) !important;
+    border-radius: 2px;
+    outline: 1px solid rgba(24, 144, 255, 0.3);
+}
+
+.json-viewer [data-selected="true"] > * {
+    background: transparent !important;
+}

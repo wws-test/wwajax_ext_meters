@@ -1,7 +1,7 @@
 /* eslint-disable indent */
-import { Button, Divider, Drawer, Tabs } from 'antd';
+import { Button, Divider, Drawer, Tabs, Space, message } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
-import { FilterOutlined } from '@ant-design/icons';
+import { FilterOutlined, BulbOutlined } from '@ant-design/icons';
 import './RequestDrawer.css';
 import ReactMarkdown from 'react-markdown';
 import ClipboardCopy from './ClipboardCopy';
@@ -247,12 +247,111 @@ const Payload: React.FC<{ record: any }> = ({ record }) => {
 interface ResponseProps {
     record: any;
     drawerOpen: boolean;
+    onAnalyze: (content: string) => void;
 }
 
-const Response: React.FC<ResponseProps> = ({ record, drawerOpen }) => {
+// 添加 AI 异常分析组件
+const AIErrorAnalysis: React.FC<{ record: any, drawerOpen: boolean, errorContent?: string }> = ({ 
+    record, 
+    drawerOpen,
+    errorContent 
+}) => {
+    const [response, setResponse] = useState('');
+    const [analysisResult, setAnalysisResult] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (drawerOpen && record.getContent) {
+            record.getContent((content: string) => {
+                setResponse(content);
+            });
+        }
+    }, [drawerOpen, record, errorContent]);
+
+    useEffect(() => {
+        if (errorContent) {
+            handleAnalyze(errorContent);
+        }
+    }, [errorContent]);
+
+    const handleAnalyze = async (content: string) => {
+        setLoading(true);
+        try {
+            const requestData = {
+                url: record.request.url,
+                method: record.request.method,
+                requestHeaders: record.request.headers,
+                requestBody: record.request.postData?.text,
+                responseStatus: record.response.status,
+                responseHeaders: record.response.headers,
+                errorContent: content
+            };
+
+            const prompt = `作为一个经验丰富的后端开发工程师和测试工程师，请帮我分析这个API异常情况：
+
+请求信息：
+- URL: ${requestData.url}
+- 方法: ${requestData.method}
+- 请求体: ${requestData.requestBody || '无'}
+
+错误响应：
+${content}
+
+请从以下几个方面进行分析：
+1. 错误类型识别：这是什么类型的错误（如：参数错误、权限错误、服务器错误等）
+2. 错误原因分析：
+   - 可能的直接原因
+   - 潜在的深层原因
+   - 是否与请求参数相关
+3. 排查建议：
+   - 需要检查的关键点
+   - 排查的优先顺序
+   - 具体的排查步骤
+4. 解决方案：
+   - 临时解决方案
+   - 长期解决建议
+   - 预防措施
+5. 测试建议：
+   - 需要补充的测试用例
+   - 边界条件测试
+   - 异常场景测试
+
+请用markdown格式输出，注意条理清晰，要让测试工程师能够清楚理解问题并知道如何进行后续测试。`;
+
+            const result = await APIUtil.sendAIRequest(JSON.stringify(requestData) + prompt, 'error_analysis');
+            setAnalysisResult(result);
+        } catch (error) {
+            console.error('AI分析失败:', error);
+            setAnalysisResult('AI分析过程中发生错误，请稍后重试。');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return <div className="loading">AI正在分析中...</div>;
+    }
+
+    return (
+        <div className="ai-analysis-container">
+            {analysisResult ? (
+                <ReactMarkdown>{analysisResult}</ReactMarkdown>
+            ) : (
+                <div className="analysis-placeholder">
+                    请从响应体选择错误信息进行分析
+                </div>
+            )}
+        </div>
+    );
+};
+
+// 修改 Response 组件
+const Response: React.FC<ResponseProps> = ({ record, drawerOpen, onAnalyze }) => {
     const [response, setResponse] = useState('');
     const [contentType, setContentType] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [selectedField, setSelectedField] = useState<{path: (string | number)[], value: any} | null>(null);
+    const [showFieldInfo, setShowFieldInfo] = useState(false);
 
     useEffect(() => {
         if (drawerOpen && record.getContent) {
@@ -269,13 +368,32 @@ const Response: React.FC<ResponseProps> = ({ record, drawerOpen }) => {
         }
     }, [drawerOpen, record]);
 
+    const handleAnalyze = () => {
+        onAnalyze(response);
+        message.success('已切换到AI分析面板');
+    };
+
+    const handleFieldSelect = (path: (string | number)[], value: any) => {
+        setSelectedField({ path, value });
+        setShowFieldInfo(true);
+        message.info('字段已选中，可点击"分析选中字段"进行分析');
+    };
+
+    const handleFieldAnalyze = () => {
+        if (selectedField) {
+            const fieldPath = selectedField.path.join('.');
+            const analysisContent = `字段路径: ${fieldPath}\n字段值: ${JSON.stringify(selectedField.value, null, 2)}`;
+            onAnalyze(analysisContent);
+            message.success('已切换到AI分析面板');
+        }
+    };
+
     const renderContent = () => {
         if (error) {
             return <div className="response-error">{error}</div>;
         }
 
         try {
-            // 尝试解析为JSON
             if (contentType.includes('application/json') || (!contentType && isValidJSON(response))) {
                 const jsonData = JSON.parse(response);
                 return (
@@ -286,9 +404,8 @@ const Response: React.FC<ResponseProps> = ({ record, drawerOpen }) => {
                             displayDataTypes={false}
                             enableClipboard
                             displaySize
+                            onSelect={handleFieldSelect}
                             theme={{
-                                scheme: 'custom',
-                                author: 'custom',
                                 base00: 'transparent',
                                 base01: '#eee',
                                 base02: '#ccc',
@@ -297,16 +414,45 @@ const Response: React.FC<ResponseProps> = ({ record, drawerOpen }) => {
                                 base05: '#333',
                                 base06: '#000',
                                 base07: '#000',
-                                base08: '#ff4d4f', // null
-                                base09: '#722ed1', // number
-                                base0A: '#fa8c16', // boolean
-                                base0B: '#52c41a', // string
-                                base0C: '#1890ff', // key
-                                base0D: '#1890ff', // brackets
-                                base0E: '#722ed1', // symbol
-                                base0F: '#ff4d4f'  // error
+                                base08: '#ff4d4f',
+                                base09: '#722ed1',
+                                base0A: '#fa8c16',
+                                base0B: '#52c41a',
+                                base0C: '#1890ff',
+                                base0D: '#1890ff',
+                                base0E: '#722ed1',
+                                base0F: '#ff4d4f'
                             }}
                         />
+                        {showFieldInfo && selectedField && (
+                            <div className="selected-field-info">
+                                <div className="field-path">
+                                    <strong>选中字段路径:</strong> {selectedField.path.join('.')}
+                                </div>
+                                <div className="field-value">
+                                    <strong>字段值:</strong>
+                                    <pre>{JSON.stringify(selectedField.value, null, 2)}</pre>
+                                </div>
+                            </div>
+                        )}
+                        <div className="response-actions">
+                            <Space>
+                                <ClipboardCopy 
+                                    copyText={response} 
+                                    onAnalyze={handleAnalyze}
+                                    showAnalyzeButton={true}
+                                />
+                                {selectedField && (
+                                    <Button
+                                        type="primary"
+                                        icon={<BulbOutlined />}
+                                        onClick={handleFieldAnalyze}
+                                    >
+                                        分析选中字段
+                                    </Button>
+                                )}
+                            </Space>
+                        </div>
                     </div>
                 );
             }
@@ -359,16 +505,22 @@ const Response: React.FC<ResponseProps> = ({ record, drawerOpen }) => {
         } catch (err) {
             // 如果JSON解析失败，显示原始内容
             return (
-                <SyntaxHighlighter 
-                    language="text" 
-                    style={docco}
-                    customStyle={{
-                        margin: 0,
-                        borderRadius: '4px'
-                    }}
-                >
-                    {response}
-                </SyntaxHighlighter>
+                <>
+                    <SyntaxHighlighter 
+                        language="text" 
+                        style={docco}
+                        customStyle={{
+                            margin: 0,
+                            borderRadius: '4px'
+                        }}
+                    >
+                        {response}
+                    </SyntaxHighlighter>
+                    <ClipboardCopy 
+                        copyText={response} 
+                        onAnalyze={handleAnalyze}
+                    />
+                </>
             );
         }
     };
@@ -439,6 +591,8 @@ const RequestDrawer: React.FC<RequestDrawerProps> = ({
     onAddInterceptorClick
 }) => {
     const title = record && record.request.url.match('[^/]+(?!.*/)');
+    const [selectedError, setSelectedError] = useState<string | null>(null);
+    const tabsRef = useRef();
 
     const commit = async () => {
         try {
@@ -462,6 +616,7 @@ const RequestDrawer: React.FC<RequestDrawerProps> = ({
             bodyStyle={{ padding: '6px 24px' }}
         >
             <Tabs
+                ref={tabsRef}
                 defaultActiveKey="1"
                 size="small"
                 tabBarExtraContent={{
@@ -493,7 +648,18 @@ const RequestDrawer: React.FC<RequestDrawerProps> = ({
                     {
                         label: '响应体',
                         key: '3',
-                        children: <Wrapper><Response record={record} drawerOpen={drawerOpen} /></Wrapper>,
+                        children: <Wrapper><Response record={record} drawerOpen={drawerOpen} onAnalyze={setSelectedError} /></Wrapper>,
+                    },
+                    {
+                        label: 'AI异常分析',
+                        key: '4',
+                        children: <Wrapper>
+                            <AIErrorAnalysis 
+                                record={record} 
+                                drawerOpen={drawerOpen} 
+                                errorContent={selectedError}
+                            />
+                        </Wrapper>,
                     },
                     {
                         label: 'AI接口分析',

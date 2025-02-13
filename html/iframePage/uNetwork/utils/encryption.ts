@@ -26,7 +26,9 @@ export class EncryptionUtil {
    */
   static aesEncrypt(text: string, secretKey: string, iv: string): string {
     try {
-      const encrypted = CryptoJS.AES.encrypt(text, secretKey, { iv });
+      const key = CryptoJS.enc.Utf8.parse(secretKey);
+      const ivParam = CryptoJS.enc.Utf8.parse(iv);
+      const encrypted = CryptoJS.AES.encrypt(text, key, { iv: ivParam });
       return encrypted.toString();
     } catch (error) {
       console.error('加密失败:', error);
