@@ -291,9 +291,6 @@ export default () => {
         // 设置复选框所在列的宽度为60像素
         columnWidth: 60,
 
-        // getCheckboxProps 是一个函数，返回每一条记录的 checkbox 属性配置，这里禁用了 id 等于5的行的复选框
-        getCheckboxProps: (record: { id: number; }) => ({}),
-
         // 设置当前选中的行键，与 selectedRowKeys 状态保持同步
         selectedRowKeys,
 
@@ -301,26 +298,34 @@ export default () => {
         type: 'checkbox',
 
         // onChange 回调会在用户更改选中项时触发，更新 selectedRowKeys 状态并打印变化后的选中信息
-        onChange: (selectedRowKeys: any, selectedRows: any) => {
-            console.log(selectedRowKeys, selectedRows);
+        onChange: (selectedRowKeys: React.Key[], selectedRows: any[]) => {
             setSelectedRowKeys(selectedRowKeys);
             setSelectedRows(selectedRows);
         },
 
-        // onSelect 回调会在用户单独勾选或取消勾选某一行时触发，打印被操作的记录、选中状态以及所有已选中的行信息
-        onSelect: (record: any, selected: any, selectedRows: any) => {
-            console.log(record, selected, selectedRows);
+        // onSelect 回调会在用户单独勾选或取消勾选某一行时触发
+        onSelect: (record: any, selected: boolean, selectedRows: any[], nativeEvent: Event) => {
+            const keys = selected ? 
+                [...selectedRowKeys, record.id] : 
+                selectedRowKeys.filter(key => key !== record.id);
+            setSelectedRowKeys(keys);
+            setSelectedRows(selectedRows);
         },
 
-        // onSelectAll 回调会在用户全选/反选所有行时触发，打印全选状态、所有已选中的行以及本次改变所涉及的行集合
-        onSelectAll: (selected: any, selectedRows: any, changeRows: any) => {
-            console.log(selected, selectedRows, changeRows);
+        // onSelectAll 回调会在用户全选/反选所有行时触发
+        onSelectAll: (selected: boolean, selectedRows: any[], changeRows: any[]) => {
+            const keys = selected ? 
+                filteredDataSource.map((item: any) => item.id) : 
+                [];
+            setSelectedRowKeys(keys);
+            setSelectedRows(selectedRows);
         },
-        rowRemoveVisible: true,
-        onRowRemove: (e: any, row: any, rowIndex: any, realRowIndex: any) => {
-            console.log('rowRemove', e, row, rowIndex, realRowIndex);
-            console.log(uNetwork);
-        }
+
+        // 获取每一行的key
+        getCheckboxProps: (record: any) => ({
+            disabled: false, // 设置是否禁用复选框
+            name: record.id,
+        }),
     };
     // 定义一个名为setUNetworkData的函数，参数为request
     const uNetworkSet = new Set(); // Create a Set to store unique URLs
@@ -334,6 +339,8 @@ export default () => {
                 }
                 if (!uNetworkSet.has(entry.request.url)) {
                     uNetworkSet.add(entry.request.url);
+                    // 添加唯一ID
+                    entry.id = uuidv4();
                     uNetwork.push(entry);
                     setUNetwork([...uNetwork]);
                 }
