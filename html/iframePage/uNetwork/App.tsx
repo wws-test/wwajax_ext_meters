@@ -3,14 +3,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 // @ts-ignore
 import { VTablePro } from 'virtualized-table';
-import { Button, Input, Modal, Radio, Space } from 'antd';
+import { Button, Input, Modal, Radio, Space, message } from 'antd';
 import {
   BuildFilled,
   FilterOutlined,
   MenuUnfoldOutlined,
   PauseCircleFilled,
   PlayCircleTwoTone,
-  StopOutlined
+  StopOutlined,
+  SaveOutlined,
+  DownloadOutlined
 } from '@ant-design/icons';
 import 'antd/dist/antd.css';
 import './App.css';
@@ -20,6 +22,8 @@ import { HeadersUtil, ENCRYPTION_CONFIG } from './utils/encryption';
 import { ChromeStorageUtil } from './utils/db';
 import { strToRegExp, getChromeLocalStorage } from './utils/common';
 import { v4 as uuidv4 } from 'uuid';
+import ScenarioAnalysisModal from './components/ScenarioAnalysisModal';
+import { APIUtil } from './utils/api';
 
 interface AddInterceptorParams {
     ajaxDataList: AjaxDataListObject[],
@@ -58,6 +62,35 @@ interface RequestBodyItem {
   addFields: any[];
   editFields: any[];
   id: string;
+}
+
+interface ScenarioData {
+    id: string;
+    requestInfo: {
+        url: string;
+        method: string;
+        queryParams: Array<{ name: string; value: string }>;
+        postData: any;
+        headers: Array<{ name: string; value: string }>;
+    };
+    responseData: string;
+    timestamp: number;
+}
+
+interface Dependency {
+    from: number;
+    param: string;
+    value: string;
+}
+
+interface RowSelectionConfig {
+    columnWidth: number;
+    selectedRowKeys: React.Key[];
+    type: 'checkbox';
+    onChange: (selectedRowKeys: React.Key[], selectedRows: any[]) => void;
+    onSelect: (record: any, selected: boolean, selectedRows: any[], nativeEvent: Event) => void;
+    onSelectAll: (selected: boolean, selectedRows: any[], changeRows: any[]) => void;
+    getCheckboxProps: (record: any) => { disabled: boolean; name: string };
 }
 
 const aesEncrypt = (text: string, secretKey: string, iv: string): string => {
@@ -193,6 +226,11 @@ export default () => {
     const [comparedRows, setComparedRows] = useState([]);
     const [selectedRowKeys, setSelectedRowKeys] = useState<any>([]);
     const [selectedRows, setSelectedRows] = useState<any>([]);
+    const [savedScenarios, setSavedScenarios] = useState<any[]>([]);
+    const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
+    const [analysisLoading, setAnalysisLoading] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState('');
+
     const getColumns = ({
                             onAddInterceptorClick,
                             onRequestUrlClick
@@ -287,7 +325,7 @@ export default () => {
         .filter((v: { request: { url: string; }; }) => v.request.url.match(strToRegExp(filterKey)));
 
     // 定义行选择功能的配置对象 rowSelection
-    const rowSelection = {
+    const rowSelection: RowSelectionConfig = {
         // 设置复选框所在列的宽度为60像素
         columnWidth: 60,
 
@@ -644,6 +682,224 @@ export default () => {
 
         fetchData();
     };
+
+    const analyzeScenario = async (scenarioData: ScenarioData[]) => {
+        try {
+            // 构建AI分析所需的提示信息
+            const prompt = `作为一个资深的测试开发工程师，请分析以下API测试场景：
+
+场景概述：
+- 接口总数：${scenarioData.length}
+- 场景创建时间：${new Date().toLocaleString()}
+
+接口列表：
+${scenarioData.map((api, index) => {
+    const url = new URL(api.requestInfo.url);
+    return `${index + 1}. ${api.requestInfo.method} ${url.pathname}
+    - 请求参数：${JSON.stringify(api.requestInfo.queryParams)}
+    - 请求体：${api.requestInfo.postData?.text || '无'}
+    - 响应数据：${api.responseData.substring(0, 200)}...`;
+}).join('\n\n')}
+
+请从以下几个方面进行分析：
+
+1. 场景流程分析
+   - 接口调用顺序是否合理
+   - 是否存在关键步骤缺失
+   - 建议的最优调用顺序
+
+2. 参数依赖关系
+   - 接口间的参数传递
+   - 关键参数的来源和使用
+   - 潜在的数据关联
+
+3. 测试覆盖建议
+   - 功能测试要点
+   - 性能测试考虑
+   - 异常场景覆盖
+   - 安全测试建议
+
+4. 潜在问题和优化建议
+   - 接口设计合理性
+   - 性能优化机会
+   - 安全风险提示
+
+请用markdown格式输出分析结果，注重实用性和可操作性。`;
+
+            // 调用AI接口获取分析结果
+            const aiAnalysis = await APIUtil.sendAIRequest(prompt, 'error_analysis');
+            
+            // 如果AI分析成功，直接返回分析结果
+            if (aiAnalysis) {
+                return aiAnalysis;
+            }
+
+            // 如果AI分析失败，返回基础分析结果
+            const report = [];
+            
+            // 1. 基本信息概述
+            report.push('# 测试场景分析报告\n');
+            report.push(`## 基本信息\n`);
+            report.push(`- 接口总数：${scenarioData.length}`);
+            report.push(`- 场景创建时间：${new Date().toLocaleString()}\n`);
+
+            // 2. 接口调用顺序分析
+            report.push('## 接口调用顺序\n');
+            scenarioData.forEach((api, index) => {
+                const url = new URL(api.requestInfo.url);
+                report.push(`${index + 1}. \`${api.requestInfo.method}\` ${url.pathname}`);
+            });
+            report.push('');
+
+            // 3. 参数依赖关系分析
+            report.push('## 参数依赖关系分析\n');
+            const parameterMap = new Map();
+            const responseDataMap = new Map();
+
+            // 分析请求参数
+            scenarioData.forEach((api, index) => {
+                const url = new URL(api.requestInfo.url);
+                const queryParams = api.requestInfo.queryParams || [];
+                const postData = api.requestInfo.postData?.text ? JSON.parse(api.requestInfo.postData.text) : {};
+                
+                // 收集请求参数
+                const parameters = [...queryParams, ...Object.entries(postData)];
+                if (parameters.length > 0) {
+                    parameterMap.set(index, parameters);
+                }
+
+                // 收集响应数据
+                try {
+                    const responseJson = JSON.parse(api.responseData);
+                    responseDataMap.set(index, responseJson);
+                } catch (e) {
+                    // 响应不是JSON格式，跳过
+                }
+            });
+
+            // 分析参数依赖
+            report.push('### 参数传递关系\n');
+            parameterMap.forEach((params: any[], apiIndex: number) => {
+                const dependencies: Dependency[] = [];
+                params.forEach((param: [string, any]) => {
+                    // 检查参数值是否来自之前接口的响应
+                    responseDataMap.forEach((response, respIndex) => {
+                        if (respIndex >= apiIndex) return;
+                        
+                        const paramValue = param[1]?.toString() || '';
+                        if (JSON.stringify(response).includes(paramValue)) {
+                            dependencies.push({
+                                from: respIndex,
+                                param: param[0],
+                                value: paramValue
+                            });
+                        }
+                    });
+                });
+
+                if (dependencies.length > 0) {
+                    const url = new URL(scenarioData[apiIndex].requestInfo.url);
+                    report.push(`#### ${apiIndex + 1}. ${url.pathname}\n`);
+                    dependencies.forEach(dep => {
+                        report.push(`- 参数 \`${dep.param}\` 可能依赖于接口 ${dep.from + 1} 的响应数据`);
+                    });
+                    report.push('');
+                }
+            });
+
+            // 4. 测试建议
+            report.push('## 测试建议\n');
+            report.push('### 功能测试建议');
+            report.push('1. 验证所有必填参数的校验逻辑');
+            report.push('2. 测试参数边界值和异常情况');
+            report.push('3. 验证接口之间的数据传递是否正确\n');
+
+            report.push('### 性能测试建议');
+            report.push('1. 建议对关键接口进行并发测试');
+            report.push('2. 监控接口响应时间，建议阈值：');
+            report.push('   - 普通接口：< 1s');
+            report.push('   - 数据处理接口：< 3s\n');
+
+            report.push('### 安全测试建议');
+            report.push('1. 验证接口的访问权限控制');
+            report.push('2. 检查敏感数据的加密传输');
+            report.push('3. 进行必要的 SQL 注入和 XSS 测试\n');
+
+            return report.join('\n');
+        } catch (error) {
+            console.error('场景分析失败:', error);
+            throw error;
+        }
+    };
+
+    const handleSaveTestScenario = async () => {
+        if (!selectedRows.length) {
+            message.warning('请先选择需要保存的接口');
+            return;
+        }
+
+        try {
+            // 预处理选中的接口数据
+            const scenarioData = await Promise.all(selectedRows.map(async (record: any) => {
+                // 提取请求信息
+                const requestInfo = {
+                    url: record.request.url,
+                    method: record.request.method,
+                    queryParams: record.request.queryString,
+                    postData: record.request.postData,
+                    headers: record.request.headers
+                };
+
+                // 提取响应信息
+                let responseData = '';
+                try {
+                    responseData = await new Promise((resolve) => {
+                        record.getContent((content: string) => {
+                            resolve(content);
+                        });
+                    });
+                } catch (error) {
+                    console.error('获取响应内容失败:', error);
+                }
+
+                return {
+                    id: record.id,
+                    requestInfo,
+                    responseData,
+                    timestamp: record.time
+                };
+            }));
+
+            setAnalysisModalVisible(true);
+            setAnalysisLoading(true);
+
+            try {
+                const result = await analyzeScenario(scenarioData);
+                setAnalysisResult(result);
+                
+                setSavedScenarios(prev => [...prev, {
+                    id: uuidv4(),
+                    name: `测试场景_${new Date().toLocaleString()}`,
+                    data: scenarioData,
+                    analysis: result
+                }]);
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : '未知错误';
+                message.error('场景分析失败：' + errorMessage);
+            } finally {
+                setAnalysisLoading(false);
+            }
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : '未知错误';
+            message.error('处理数据时出错：' + errorMessage);
+        }
+    };
+
+    const handleDownloadJMeter = () => {
+        // TODO: 实现JMeter脚本下载功能
+        message.info('JMeter脚本下载功能开发中...');
+    };
+
     return <div className="ajax-tools-devtools">
         <div className="ajax-tools-devtools-header">
             <div className="ajax-tools-devtools-header-left">
@@ -676,6 +932,18 @@ export default () => {
                         title="Import to metersphere"
                         onClick={metersphere_import}
                     />
+                    <SaveOutlined
+                        className="ajax-tools-devtools-text-btn"
+                        title="保存测试场景"
+                        onClick={handleSaveTestScenario}
+                        style={{ color: selectedRows.length ? '#1890ff' : '#999' }}
+                    />
+                    <DownloadOutlined
+                        className="ajax-tools-devtools-text-btn"
+                        title="下载JMeter脚本"
+                        onClick={handleDownloadJMeter}
+                        style={{ color: savedScenarios.length ? '#1890ff' : '#999' }}
+                    />
                 </div>
             </div>
             <div className="ajax-tools-devtools-header-right">
@@ -704,5 +972,11 @@ export default () => {
                 onAddInterceptorClick={onAddInterceptorClick}
             />
         }
+        <ScenarioAnalysisModal
+            visible={analysisModalVisible}
+            onClose={() => setAnalysisModalVisible(false)}
+            loading={analysisLoading}
+            analysisResult={analysisResult}
+        />
     </div>;
 };
