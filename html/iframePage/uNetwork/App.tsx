@@ -685,9 +685,8 @@ export default () => {
 
     const analyzeScenario = async (scenarioData: ScenarioData[]) => {
         try {
-            // 构建AI分析所需的提示信息
-            const prompt = `作为一个资深的测试开发工程师，请分析以下API测试场景：
-
+            // 构建场景数据
+            const analysisData = `
 场景概述：
 - 接口总数：${scenarioData.length}
 - 场景创建时间：${new Date().toLocaleString()}
@@ -699,11 +698,10 @@ ${scenarioData.map((api, index) => {
     - 请求参数：${JSON.stringify(api.requestInfo.queryParams)}
     - 请求体：${api.requestInfo.postData?.text || '无'}
     - 响应数据：${api.responseData.substring(0, 200)}...`;
-}).join('\n\n')}
-`;
+}).join('\n\n')}`;
 
             // 调用AI接口获取分析结果
-            const aiAnalysis = await APIUtil.sendAIRequest(prompt, 'scenario_analysis');
+            const aiAnalysis = await APIUtil.sendAIRequest(analysisData, 'scenario_analysis');
             
             // 如果AI分析成功，直接返回分析结果
             if (aiAnalysis) {

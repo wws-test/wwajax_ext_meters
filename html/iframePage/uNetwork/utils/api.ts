@@ -32,42 +32,49 @@ const SYSTEM_PROMPTS = {
   testCase: '我会输入一些接口信息，你要帮我生成成接口的pytest用例（需要部分定制）发送接口要用这种形式myrequest.request_send("Method", \'DescribeAuditDbTypes(取url最后一个单词)\', data=data)  。 myassert.equal(res["code"], "200")\n断言部分这样写死即可 发送接口前加入 with allure.step()内容智能生成  还有add_title() 以及add_desc() 内容智能生成 只需要专注生成主函数部分 导入以及main部分不需要生成 还有不需要实例化myassert 以及myrequest  只需要生成函数部分 不需要输出说明文字',
 
   // 错误响应分析提示词
-  error_response_analysis: `作为一个经验丰富的后端开发工程师和测试工程师，请帮我分析这个API异常情况：
-
-请求信息：
-- URL: \${requestData.url}
-- 方法: \${requestData.method}
-- 请求体: \${requestData.requestBody || '无'}
-
-错误响应：
-\${errorContent}
+  error_response_analysis: `作为一个经验丰富的后端开发工程师和测试工程师，请帮我分析这个API异常情况。
 
 请从以下几个方面进行分析：
-1. 错误类型识别：这是什么类型的错误（如：参数错误、权限错误、服务器错误等）
-2. 错误原因分析：
+
+1. 错误类型识别
+   - 错误的类型（参数错误、权限错误、服务器错误等）
+   - 错误的严重程度
+   - 是否为系统性错误
+
+2. 错误字段分析（如果提供了字段信息）
+   - 字段的业务含义
+   - 字段值的合法性
+   - 字段与错误的关联性
+   - 数据验证建议
+
+3. 错误原因分析
    - 可能的直接原因
    - 潜在的深层原因
    - 是否与请求参数相关
-3. 排查建议：
+   - 是否与特定字段相关
+
+4. 排查建议
    - 需要检查的关键点
    - 排查的优先顺序
    - 具体的排查步骤
-4. 解决方案：
+   - 相关字段的验证方法
+
+5. 解决方案
    - 临时解决方案
    - 长期解决建议
    - 预防措施
-5. 测试建议：
+   - 数据验证改进建议
+
+6. 测试建议
    - 需要补充的测试用例
    - 边界条件测试
    - 异常场景测试
+   - 字段相关的测试点
 
 请用markdown格式输出，注意条理清晰，要让测试工程师能够清楚理解问题并知道如何进行后续测试。`,
 
   // 场景分析提示词
-  scenario_analysis: `作为一个资深的测试开发工程师，请帮我分析这组API测试场景。
-
-场景数据：
-\${scenarioData}
+  scenario_analysis: `作为一个资深的测试开发工程师，请分析提供的API测试场景。
 
 请从以下几个方面进行分析：
 
@@ -91,8 +98,97 @@ const SYSTEM_PROMPTS = {
    - 接口设计合理性
    - 性能优化机会
    - 安全风险提示
-   
-请首先输出一段Markdown格式的分析总结，然后在文档最后附上详细的JSON格式分析数据。确保分析全面且实用。`
+
+请首先输出一段Markdown格式的分析总结，然后在文档最后附上如下格式的JSON数据：
+
+{
+  "scenarioInfo": {
+    "apiCount": 0,
+    "timestamp": "2024-02-18T10:00:00Z",
+    "description": "场景概述"
+  },
+  "flowAnalysis": {
+    "optimizedOrder": [0, 1, 2],
+    "missingSteps": ["建议添加的步骤"],
+    "criticalPaths": [
+      {
+        "name": "关键路径1",
+        "steps": [0, 1],
+        "description": "路径说明"
+      }
+    ]
+  },
+  "dependencies": [
+    {
+      "sourceApi": 0,
+      "targetApi": 1,
+      "params": [
+        {
+          "source": {
+            "param": "token",
+            "location": "response",
+            "expression": "$.data.token",
+            "description": "认证令牌"
+          },
+          "target": {
+            "param": "token",
+            "location": "header",
+            "description": "用于认证"
+          }
+        }
+      ]
+    }
+  ],
+  "testCoverage": {
+    "assertions": [
+      {
+        "apiIndex": 0,
+        "type": "status",
+        "condition": "equals",
+        "value": "200",
+        "description": "检查响应状态码"
+      }
+    ],
+    "variables": [
+      {
+        "name": "baseUrl",
+        "value": "https://api.example.com",
+        "scope": "global",
+        "description": "API基础地址"
+      }
+    ],
+    "dataPreparation": [
+      {
+        "type": "database",
+        "description": "准备测试数据",
+        "sql": "INSERT INTO users (name, role) VALUES ('test', 'admin')"
+      }
+    ]
+  },
+  "securityChecks": [
+    {
+      "type": "authentication",
+      "apiIndex": 0,
+      "description": "验证认证机制",
+      "testCases": [
+        "测试无效token",
+        "测试过期token"
+      ]
+    }
+  ],
+  "performanceConsiderations": [
+    {
+      "apiIndex": 0,
+      "description": "登录接口性能要求",
+      "thresholds": {
+        "responseTime": 1000,
+        "throughput": 100
+      }
+    }
+  ]
+}
+
+注意：JSON数据必须完全符合上述格式，以确保能够正确生成JMeter测试脚本。每个字段都应该基于实际分析结果填写，保持数据的准确性和完整性。`,
 };
 
 /**

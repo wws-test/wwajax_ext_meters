@@ -277,23 +277,18 @@ const AIErrorAnalysis: React.FC<{ record: any, drawerOpen: boolean, errorContent
     const handleAnalyze = async (content: string) => {
         setLoading(true);
         try {
-            const requestData = {
-                url: record.request.url,
-                method: record.request.method,
-                requestHeaders: record.request.headers,
-                requestBody: record.request.postData?.text,
-                responseStatus: record.response.status,
-                responseHeaders: record.response.headers,
-                errorContent: content
-            };
+            // 构建分析数据
+            const analysisData = `
+请求信息：
+- URL: ${record?.request?.url || '未提供'}
+- 方法: ${record?.request?.method || '未提供'}
+- 请求体: ${record?.request?.postData?.text || '无'}
 
-            const prompt = SYSTEM_PROMPTS.error_response_analysis
-                .replace('${requestData.url}', requestData.url)
-                .replace('${requestData.method}', requestData.method)
-                .replace('${requestData.requestBody || \'无\'}', requestData.requestBody || '无')
-                .replace('${errorContent}', content);
-
-            const result = await APIUtil.sendAIRequest(prompt, 'error_response_analysis');
+错误响应：
+${content || '未提供错误内容'}
+`;
+            // 发送分析请求
+            const result = await APIUtil.sendAIRequest(analysisData, 'error_response_analysis');
             setAnalysisResult(result);
         } catch (error) {
             console.error('AI分析失败:', error);
@@ -357,10 +352,21 @@ const Response: React.FC<ResponseProps> = ({ record, drawerOpen, onAnalyze }) =>
     const handleFieldAnalyze = () => {
         if (selectedField) {
             const fieldPath = selectedField.path.join('.');
-            const fieldInfo = `字段路径: ${fieldPath}\n字段值: ${JSON.stringify(selectedField.value, null, 2)}`;
+            const analysisData = `
+请求信息：
+- URL: ${record?.request?.url || '未提供'}
+- 方法: ${record?.request?.method || '未提供'}
+- 请求体: ${record?.request?.postData?.text || '无'}
+
+选中字段信息：
+- 字段路径: ${fieldPath}
+- 字段值: ${JSON.stringify(selectedField.value, null, 2)}
+- 字段类型: ${typeof selectedField.value}
+
+错误响应：
+${response || '未提供错误内容'}`;
             
-            const prompt = SYSTEM_PROMPTS.field_analysis.replace('${fieldInfo}', fieldInfo);
-            onAnalyze(prompt);
+            onAnalyze(analysisData);
             message.success('已切换到AI分析面板');
         }
     };
