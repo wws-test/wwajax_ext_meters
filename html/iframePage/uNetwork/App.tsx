@@ -700,34 +700,10 @@ ${scenarioData.map((api, index) => {
     - 请求体：${api.requestInfo.postData?.text || '无'}
     - 响应数据：${api.responseData.substring(0, 200)}...`;
 }).join('\n\n')}
-
-请从以下几个方面进行分析：
-
-1. 场景流程分析
-   - 接口调用顺序是否合理
-   - 是否存在关键步骤缺失
-   - 建议的最优调用顺序
-
-2. 参数依赖关系
-   - 接口间的参数传递
-   - 关键参数的来源和使用
-   - 潜在的数据关联
-
-3. 测试覆盖建议
-   - 功能测试要点
-   - 性能测试考虑
-   - 异常场景覆盖
-   - 安全测试建议
-
-4. 潜在问题和优化建议
-   - 接口设计合理性
-   - 性能优化机会
-   - 安全风险提示
-
-请用markdown格式输出分析结果，注重实用性和可操作性。`;
+`;
 
             // 调用AI接口获取分析结果
-            const aiAnalysis = await APIUtil.sendAIRequest(prompt, 'error_analysis');
+            const aiAnalysis = await APIUtil.sendAIRequest(prompt, 'scenario_analysis');
             
             // 如果AI分析成功，直接返回分析结果
             if (aiAnalysis) {

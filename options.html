@@ -1,68 +1,121 @@
-<!doctype html>
-<html lang="zh">
+<!DOCTYPE html>
+<html>
 <head>
-    <meta charset="utf-8">
-    <title>扩展程序选项</title>
+    <meta charset="UTF-8">
+    <title>扩展配置</title>
     <style>
         body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #f7f7f7;
-            font-family: Arial, sans-serif;
-        }
-
-        #options-form {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        #options-form label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        #options-form input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            box-sizing: border-box; /* 防止输入框超出容器宽度 */
-        }
-
-        #options-form button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 3px;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-            display: block;
+            max-width: 800px;
             margin: 0 auto;
+            background-color: #f5f5f5;
         }
-
-        #options-form button:hover {
-            background-color: #0056b3;
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1890ff;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            border-color: #40a9ff;
+            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
+            outline: none;
+        }
+        button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background-color: #40a9ff;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .section-title {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
-<form id="options-form">
-    <h1>必须修改默认ID,方可使用</h1>
-    <label for="input1">项目ID：</label>
-    <input type="text" id="input1" name="input1"/>
-    <label for="input2">人员ID：</label>
-    <input type="text" id="input2" name="input2"/>
-    <button type="submit">保存</button>
-</form>
-<script src="options.js"></script>
+    <div class="container">
+        <h1>扩展配置</h1>
+        <form id="options-form">
+            <div class="section">
+                <div class="section-title">基础配置</div>
+                <div class="form-group">
+                    <label for="projectId">项目ID</label>
+                    <input type="text" id="projectId" required>
+                </div>
+                <div class="form-group">
+                    <label for="userId">用户ID</label>
+                    <input type="text" id="userId" required>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">AI配置</div>
+                <div class="form-group">
+                    <label for="apiKey">API Key</label>
+                    <input type="text" id="apiKey" placeholder="输入API Key，或输入'admin'使用默认配置">
+                </div>
+                <div class="form-group">
+                    <label for="apiUrl">API URL</label>
+                    <input type="text" id="apiUrl" placeholder="输入API URL">
+                </div>
+                <div class="form-group">
+                    <label for="model">模型名称</label>
+                    <input type="text" id="model" placeholder="输入模型名称">
+                </div>
+                <div class="form-group">
+                    <label for="temperature">温度 (0.0 - 1.0)</label>
+                    <input type="number" id="temperature" min="0" max="1" step="0.1" value="0.5">
+                </div>
+            </div>
+
+            <button type="submit">保存配置</button>
+        </form>
+    </div>
+    <script src="options.js"></script>
 </body>
 </html>

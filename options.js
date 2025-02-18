@@ -54,9 +54,93 @@ function loadSettings() {
     };
 }
 
-document.addEventListener('DOMContentLoaded', openDB);
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('options-form');
+    
+    // 加载已保存的配置
+    chrome.storage.local.get(['projectid', 'user', 'aiConfig'], (result) => {
+        if (result.projectid) {
+            document.getElementById('projectId').value = result.projectid;
+        }
+        if (result.user) {
+            document.getElementById('userId').value = result.user;
+        }
+        if (result.aiConfig) {
+            try {
+                const aiConfig = JSON.parse(result.aiConfig);
+                document.getElementById('apiKey').value = aiConfig.apiKey || '';
+                document.getElementById('apiUrl').value = aiConfig.url || '';
+                document.getElementById('model').value = aiConfig.model || '';
+                document.getElementById('temperature').value = aiConfig.temperature || '0.5';
+            } catch (error) {
+                console.error('解析AI配置失败:', error);
+            }
+        }
+    });
 
-document.getElementById('options-form').addEventListener('submit', function (event) {
-    event.preventDefault();
-    saveSettings(document.getElementById('input1').value, document.getElementById('input2').value);
+    // 保存配置
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const projectId = document.getElementById('projectId').value;
+        const userId = document.getElementById('userId').value;
+        const apiKey = document.getElementById('apiKey').value;
+        const apiUrl = document.getElementById('apiUrl').value;
+        const model = document.getElementById('model').value;
+        const temperature = document.getElementById('temperature').value;
+
+        // 保存基础配置
+        chrome.storage.local.set({
+            projectid: projectId,
+            user: userId
+        });
+
+        // 保存AI配置
+        if (apiKey) {
+            const aiConfig = {
+                apiKey,
+                url: apiUrl,
+                model,
+                temperature: parseFloat(temperature) || 0.5
+            };
+            chrome.storage.local.set({
+                aiConfig: JSON.stringify(aiConfig)
+            });
+        }
+
+        // 显示保存成功提示
+        const status = document.createElement('div');
+        status.textContent = '配置已保存';
+        status.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #52c41a;
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            animation: fadeInOut 2s forwards;
+        `;
+
+        document.body.appendChild(status);
+
+        // 添加动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-20px); }
+                10% { opacity: 1; transform: translateY(0); }
+                90% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 移除提示
+        setTimeout(() => {
+            document.body.removeChild(status);
+            document.head.removeChild(style);
+        }, 2000);
+    });
 });
