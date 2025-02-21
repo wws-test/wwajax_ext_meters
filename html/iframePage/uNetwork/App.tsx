@@ -365,26 +365,58 @@ export default () => {
             name: record.id,
         }),
     };
-    // 定义一个名为setUNetworkData的函数，参数为request
-    const uNetworkSet = new Set(); // Create a Set to store unique URLs
+    // URL请求记录映射
+    const urlRequestMap = new Map<string, { first: any; last: any }>();
+
     const setUNetworkData = function (entry: any) {
         if (['fetch', 'xhr'].includes(entry._resourceType)) {
             const url = new URL(entry.request.url);
-            if (!url.pathname.startsWith('/custom') && !url.pathname.endsWith('.json') && !url.pathname.endsWith('.png') && !url.pathname.endsWith('.js') && !url.pathname.endsWith('.css')) {
-                const contentType = entry.response.headers.find((header: any) => header.name.toLowerCase() === 'content-type');
+            if (!url.pathname.startsWith('/custom') && 
+                !url.pathname.endsWith('.json') && 
+                !url.pathname.endsWith('.png') && 
+                !url.pathname.endsWith('.js') && 
+                !url.pathname.endsWith('.css')) {
+                
+                const contentType = entry.response.headers.find(
+                    (header: any) => header.name.toLowerCase() === 'content-type'
+                );
+                
                 if (contentType && contentType.value.toLowerCase().includes('text/html')) {
-                    return; // 如果响应的Content-Type是text/html，则直接返回，不执行后续操作
+                    return;
                 }
-                if (!uNetworkSet.has(entry.request.url)) {
-                    uNetworkSet.add(entry.request.url);
-                    // 添加唯一ID
-                    entry.id = uuidv4();
+
+                // 为新请求添加唯一ID
+                entry.id = uuidv4();
+
+                // 获取当前URL的请求记录
+                const urlRecord = urlRequestMap.get(entry.request.url);
+
+                if (!urlRecord) {
+                    // 第一次请求，创建新记录
+                    urlRequestMap.set(entry.request.url, { first: entry, last: entry });
                     uNetwork.push(entry);
-                    setUNetwork([...uNetwork]);
+                } else {
+                    // 更新最后一个请求
+                    const { first } = urlRecord;
+                    
+                    // 从数组中移除之前的最后一个请求（如果存在）
+                    const lastIndex = uNetwork.findIndex(item => 
+                        item.request.url === entry.request.url && item.id !== first.id
+                    );
+                    if (lastIndex !== -1) {
+                        uNetwork.splice(lastIndex, 1);
+                    }
+                    
+                    // 更新记录并添加新的最后一个请求
+                    urlRequestMap.set(entry.request.url, { first, last: entry });
+                    uNetwork.push(entry);
                 }
+
+                setUNetwork([...uNetwork]);
             }
         }
     };
+
     useEffect(() => {
         // 当 recording 状态发生变化时执行
         if (chrome.devtools) {

@@ -22,12 +22,16 @@ export default defineConfig({
         index: path.resolve(__dirname, './index.html'),
         uNetwork: path.resolve(__dirname, './uNetwork.html'),
         declarativeNetRequest: path.resolve(__dirname, './declarativeNetRequest.html'),
+        uSQL: path.resolve(__dirname, './uSQL.html'),
       },
       output: {
         chunkFileNames: 'static/js/[name]-[hash].js',
         entryFileNames: 'static/js/[name]-[hash].js',
-        assetFileNames: 'static/css/[name]-[hash].[ext]',
+        assetFileNames: 'static/[ext]/[name]-[hash].[ext]',
       }
     },
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.json']
   }
 });

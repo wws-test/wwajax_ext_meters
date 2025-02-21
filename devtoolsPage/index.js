@@ -1,3 +1,4 @@
+// 注册 U-Network 面板
 chrome.devtools.panels.create('U-Network', 'icon.png', '../html/iframePage/dist/uNetwork.html', function (panel) {
     console.log('U-Network面板创建成功！');
 
@@ -30,7 +31,14 @@ chrome.devtools.panels.create('U-Network', 'icon.png', '../html/iframePage/dist/
                 db.close();
             };
         };
+    });
+});
 
+// 注册 U SQL 面板
+chrome.devtools.panels.create('U SQL', 'icon.png', '../html/iframePage/dist/uSQL.html', function (panel) {
+    console.log('U SQL面板创建成功！');
+
+    panel.onShown.addListener(function (panelWindow) {
     });
 });
 

@@ -7,20 +7,6 @@ const dbName = 'myDatabase';
 // 声明常量storeName，用于存储对象存储名称
 const storeName = 'myObjectStore';
 
-// 定义函数openDB，用于打开数据库并加载设置
-function openDB() {
-    let request = indexedDB.open(dbName, 2);
-
-    request.onsuccess = function (event) {
-        db = event.target.result;
-        loadSettings();
-    };
-
-    request.onerror = function (event) {
-        console.error('Database error:', event.target.errorCode);
-    };
-}
-
 // 定义函数saveSettings，用于保存设置
 function saveSettings(projectidValue, userValue) {
     const transaction = db.transaction([storeName], 'readwrite');
@@ -88,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const apiUrl = document.getElementById('apiUrl').value;
         const model = document.getElementById('model').value;
         const temperature = document.getElementById('temperature').value;
-
         // 保存基础配置
         chrome.storage.local.set({
             projectid: projectId,
@@ -107,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 aiConfig: JSON.stringify(aiConfig)
             });
         }
-
         // 显示保存成功提示
         const status = document.createElement('div');
         status.textContent = '配置已保存';
