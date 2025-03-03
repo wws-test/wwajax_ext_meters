@@ -99,9 +99,9 @@ export class JMeterTemplateUtil {
               </elementProp>`).join('')}
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">\${__P(host)}</stringProp>
-          <stringProp name="HTTPSampler.port">\${__P(port)}</stringProp>
-          <stringProp name="HTTPSampler.protocol">\${__P(protocol)}</stringProp>
+          <stringProp name="HTTPSampler.domain">${'${host}'}</stringProp>
+          <stringProp name="HTTPSampler.port">${'${port}'}</stringProp>
+          <stringProp name="HTTPSampler.protocol">${'${protocol}'}</stringProp>
           <stringProp name="HTTPSampler.path">${request.path}</stringProp>
           <stringProp name="HTTPSampler.method">${request.method}</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
@@ -188,17 +188,17 @@ export class JMeterTemplateUtil {
         const variables: JMeterVariable[] = [
             {
                 name: 'host',
-                value: '${__P(host,localhost)}',
+                value: 'localhost',
                 description: '服务器主机名'
             },
             {
                 name: 'port',
-                value: '${__P(port,8080)}',
+                value: '8080',
                 description: '服务器端口'
             },
             {
                 name: 'protocol',
-                value: '${__P(protocol,http)}',
+                value: 'http',
                 description: '协议'
             }
         ];

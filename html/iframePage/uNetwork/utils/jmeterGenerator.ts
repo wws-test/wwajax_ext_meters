@@ -1,11 +1,123 @@
 /* eslint-disable indent */
 import { v4 as uuidv4 } from 'uuid';
 
-// AI分析结果接口
+// 基础配置接口
+interface BaseConfig {
+    protocol: string;
+    domain: string;
+    port: string;
+}
+
+// 场景信息接口
 interface ScenarioInfo {
     apiCount: number;
     timestamp: string;
     description: string;
+    baseConfig: BaseConfig;
+}
+
+// 参数接口
+interface Parameter {
+    name: string;
+    value: string;
+    type: 'query' | 'body' | 'path';
+    description: string;
+}
+
+// 请求头接口
+interface Header {
+    name: string;
+    value: string;
+}
+
+// 提取器源接口
+interface ExtractorSource {
+    param: string;
+    location: 'response' | 'header';
+    expression: string;
+    description: string;
+}
+
+// 提取器目标接口
+interface ExtractorTarget {
+    param: string;
+    location: 'path' | 'query' | 'body' | 'header';
+    description: string;
+}
+
+// 提取器接口
+interface Extractor {
+    name: string;
+    expression: string;
+    matchNumber: string;
+    description: string;
+}
+
+// 断言接口
+interface Assertion {
+    apiIndex: number;
+    type: 'status' | 'response' | 'header';
+    condition: string;
+    value: string;
+    description: string;
+}
+
+// 性能配置接口
+interface PerformanceConfig {
+    responseTime: number;
+    throughput: number;
+}
+
+// 请求接口
+interface Request {
+    name: string;
+    path: string;
+    method: string;
+    parameters: Parameter[];
+    headers: Header[];
+    extractors: Extractor[];
+    assertions: Assertion[];
+    performanceConfig?: PerformanceConfig;
+}
+
+// 依赖参数接口
+interface DependencyParam {
+    source: ExtractorSource;
+    target: ExtractorTarget;
+}
+
+// 依赖关系接口
+interface Dependency {
+    sourceApi: number;
+    targetApi: number;
+    params: DependencyParam[];
+}
+
+// 变量接口
+interface Variable {
+    name: string;
+    value: string;
+    scope: 'global' | 'api';
+    apiIndex?: number;
+    description: string;
+}
+
+// 测试配置接口
+interface TestConfig {
+    threads: number;
+    rampUp: number;
+    loops: number;
+    duration: number;
+    defaultAssertions: boolean;
+}
+
+// 完整场景配置接口
+interface ScenarioConfig {
+    scenarioInfo: ScenarioInfo;
+    requests: Request[];
+    dependencies: Dependency[];
+    variables: Variable[];
+    testConfig: TestConfig;
 }
 
 interface CriticalPath {
@@ -30,31 +142,6 @@ interface ParamSource {
 interface ParamTarget {
     param: string;
     location: 'path' | 'query' | 'body' | 'header';
-    description: string;
-}
-
-interface Dependency {
-    sourceApi: number;
-    targetApi: number;
-    params: Array<{
-        source: ParamSource;
-        target: ParamTarget;
-    }>;
-}
-
-interface Assertion {
-    apiIndex: number;
-    type: 'status' | 'response' | 'header';
-    condition: string;
-    value: string;
-    description: string;
-}
-
-interface Variable {
-    name: string;
-    value: string;
-    scope: 'global' | 'api';
-    apiIndex?: number;
     description: string;
 }
 
@@ -112,6 +199,22 @@ interface JMeterDependency {
     extractExpression: string;
 }
 
+interface HTTPSamplerConfig {
+    name: string;
+    method: string;
+    path: string;
+    domain?: string;
+    port?: string;
+    protocol?: string;
+    parameters: any[];
+    headers: any[];
+    postData?: string;
+    dependencies?: Dependency[];
+    assertions: Assertion[];
+    performanceConfig?: PerformanceConsideration;
+    apiIndex?: number;
+}
+
 export class JMeterGenerator {
     private static readonly TEMPLATE_START = `<?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
@@ -165,125 +268,89 @@ export class JMeterGenerator {
         <hashTree/>`;
     }
 
-    private static generateHTTPSamplerConfig(config: {
-        name: string;
-        method: string;
-        path: string;
-        domain: string;
-        port: string;
-        protocol: string;
-        parameters: any[];
-        postData?: string;
-        dependencies: Dependency[];
-        assertions: Assertion[];
-        performanceConfig?: PerformanceConsideration;
-        apiIndex: number;
-    }): string {
-        const uuid = uuidv4().replace(/-/g, '');
-        let samplerConfig = this.generateBasicHTTPSampler(config);
-
-        // 添加断言
-        samplerConfig += this.generateAssertions(config.assertions);
-
-        // 添加参数提取器
-        config.dependencies.forEach(dep => {
-            dep.params.forEach(param => {
-                samplerConfig += this.generateExtractor(param.source, uuid);
-            });
-        });
-
-        // 添加性能配置
-        if (config.performanceConfig) {
-            samplerConfig += this.generatePerformanceConfig(config.performanceConfig);
+    private static generateParameters(parameters: Array<{ name: string; value: string }>): string {
+        if (!parameters || parameters.length === 0) {
+            return '';
         }
 
-        samplerConfig += '\n        </hashTree>';
-        return samplerConfig;
-    }
-
-    private static generateBasicHTTPSampler(config: {
-        name: string;
-        method: string;
-        path: string;
-        domain: string;
-        port: string;
-        protocol: string;
-        parameters: any[];
-        postData?: string;
-    }): string {
-        return `
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="${config.name}" enabled="true">
-          <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
-            <collectionProp name="Arguments.arguments">
-              ${config.parameters.map(param => `
-              <elementProp name="${param.name}" elementType="HTTPArgument">
+        return parameters.map(param => `
+            <elementProp name="${param.name}" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">true</boolProp>
                 <stringProp name="Argument.name">${param.name}</stringProp>
                 <stringProp name="Argument.value">${param.value}</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
                 <boolProp name="HTTPArgument.use_equals">true</boolProp>
-              </elementProp>`).join('')}
-              ${config.postData ? `
-              <elementProp name="" elementType="HTTPArgument">
-                <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">${config.postData}</stringProp>
-                <stringProp name="Argument.metadata">=</stringProp>
-              </elementProp>` : ''}
-            </collectionProp>
-          </elementProp>
-          <stringProp name="HTTPSampler.domain">${config.domain}</stringProp>
-          <stringProp name="HTTPSampler.port">${config.port}</stringProp>
-          <stringProp name="HTTPSampler.protocol">${config.protocol}</stringProp>
-          <stringProp name="HTTPSampler.path">${config.path}</stringProp>
-          <stringProp name="HTTPSampler.method">${config.method}</stringProp>
-          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
-          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
-          <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
-        </HTTPSamplerProxy>
-        <hashTree>`;
+            </elementProp>
+        `).join('');
     }
 
-    private static generatePerformanceConfig(config: PerformanceConsideration): string {
-        return `
-          <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion" testname="响应时间断言" enabled="true">
-            <stringProp name="DurationAssertion.duration">${config.thresholds.responseTime}</stringProp>
-          </DurationAssertion>
-          <hashTree/>
-          <ConstantThroughputTimer guiclass="TestBeanGUI" testclass="ConstantThroughputTimer" testname="吞吐量控制器" enabled="true">
-            <intProp name="calcMode">0</intProp>
-            <doubleProp>
-              <name>throughput</name>
-              <value>${config.thresholds.throughput}</value>
-              <savedValue>0.0</savedValue>
-            </doubleProp>
-          </ConstantThroughputTimer>
-          <hashTree/>`;
+    private static generateHTTPSamplerConfig(config: HTTPSamplerConfig): string {
+        const {
+            name,
+            method,
+            path,
+            domain = '${host}',
+            port = '${port}',
+            protocol = '${protocol}',
+            parameters = [],
+            headers = [],
+            postData,
+            assertions = []
+        } = config;
+
+        const samplerXml = `
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="${name}" enabled="true">
+                <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
+                    <collectionProp name="Arguments.arguments">
+                        ${this.generateParameters(parameters)}
+                        ${postData ? `
+                        <elementProp name="" elementType="HTTPArgument">
+                            <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                            <stringProp name="Argument.value">${postData}</stringProp>
+                            <stringProp name="Argument.metadata">=</stringProp>
+                        </elementProp>
+                        ` : ''}
+                    </collectionProp>
+                </elementProp>
+                <stringProp name="HTTPSampler.domain">${domain}</stringProp>
+                <stringProp name="HTTPSampler.port">${port}</stringProp>
+                <stringProp name="HTTPSampler.protocol">${protocol}</stringProp>
+                <stringProp name="HTTPSampler.path">${path}</stringProp>
+                <stringProp name="HTTPSampler.method">${method}</stringProp>
+                <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+                <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
+                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
+                <boolProp name="HTTPSampler.BROWSER_COMPATIBLE_MULTIPART">false</boolProp>
+                <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+                <boolProp name="HTTPSampler.monitor">false</boolProp>
+                <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+                ${this.generateHeaderManager(headers)}
+                ${this.generateAssertions(assertions)}
+            </hashTree>`;
+
+        return samplerXml;
     }
 
-    private static generateExtractor(source: ParamSource, uuid: string): string {
-        if (source.location === 'response') {
-            return `
-          <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JSON提取器 - ${source.description}" enabled="true">
-            <stringProp name="JSONPostProcessor.referenceNames">${source.param}_${uuid}</stringProp>
-            <stringProp name="JSONPostProcessor.jsonPathExprs">${source.expression}</stringProp>
-            <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
-            <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
-          </JSONPostProcessor>
-          <hashTree/>`;
-        } else {
-            return `
-          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="正则提取器 - ${source.description}" enabled="true">
-            <stringProp name="RegexExtractor.useHeaders">true</stringProp>
-            <stringProp name="RegexExtractor.refname">${source.param}_${uuid}</stringProp>
-            <stringProp name="RegexExtractor.regex">${source.expression}</stringProp>
-            <stringProp name="RegexExtractor.template">$1$</stringProp>
-            <stringProp name="RegexExtractor.default">NOT_FOUND</stringProp>
-            <stringProp name="RegexExtractor.match_number">1</stringProp>
-          </RegexExtractor>
-          <hashTree/>`;
+    private static generateHeaderManager(headers: Array<{ name: string; value: string }>): string {
+        if (!headers || headers.length === 0) {
+            return '';
         }
+
+        return `
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+                <collectionProp name="HeaderManager.headers">
+                    ${headers.map(header => `
+                        <elementProp name="" elementType="Header">
+                            <stringProp name="Header.name">${header.name}</stringProp>
+                            <stringProp name="Header.value">${header.value}</stringProp>
+                        </elementProp>
+                    `).join('')}
+                </collectionProp>
+            </HeaderManager>
+            <hashTree/>`;
     }
 
     private static generateAssertions(assertions: Assertion[]): string {
@@ -338,64 +405,33 @@ export class JMeterGenerator {
                 throw new Error('未找到分析结果JSON数据');
             }
 
-            const analysis: APIAnalysisResult = JSON.parse(jsonMatch[1]);
+            const analysis = JSON.parse(jsonMatch[1]);
             
             // 生成脚本内容
             let scriptContent = this.TEMPLATE_START;
 
             // 添加变量配置
-            const variables = this.extractVariables(analysis.testCoverage.variables);
+            const variables = this.extractVariables(analysis.variables || []);
             scriptContent += this.generateVariablesConfig(variables);
 
             // 添加HTTP请求默认值配置
             scriptContent += this.generateDefaultConfig();
 
-            // 添加数据准备步骤（如果有）
-            if (analysis.testCoverage.dataPreparation.length > 0) {
-                scriptContent += this.generateDataPreparation(analysis.testCoverage.dataPreparation);
-            }
-
-            // 按照优化后的顺序生成请求
-            const requestOrder = analysis.flowAnalysis.optimizedOrder.length > 0 
-                ? analysis.flowAnalysis.optimizedOrder 
-                : scenarioData.map((_, index) => index);
-
-            requestOrder.forEach(index => {
-                const api = scenarioData[index];
-                const url = new URL(api.requestInfo.url);
-                
-                // 获取当前API的断言配置
-                const assertions = analysis.testCoverage.assertions
-                    .filter(a => a.apiIndex === index);
-
-                // 获取当前API的依赖关系
-                const apiDependencies = analysis.dependencies
-                    .filter(d => d.targetApi === index);
-
-                // 获取性能配置
-                const performanceConfig = analysis.performanceConsiderations
-                    .find(p => p.apiIndex === index);
-
+            // 添加请求配置
+            analysis.requests.forEach((request: any, index: number) => {
                 scriptContent += this.generateHTTPSamplerConfig({
-                    name: `${index + 1}_${url.pathname}`,
-                    method: api.requestInfo.method,
-                    path: url.pathname,
-                    domain: url.hostname,
-                    port: url.port || (url.protocol === 'https:' ? '443' : '80'),
-                    protocol: url.protocol.replace(':', ''),
-                    parameters: this.processParameters(
-                        api.requestInfo.queryParams,
-                        apiDependencies
-                    ),
-                    postData: api.requestInfo.postData?.text,
-                    dependencies: apiDependencies,
-                    assertions,
-                    performanceConfig,
-                    apiIndex: index
+                    name: request.name,
+                    path: request.path,
+                    method: request.method,
+                    parameters: request.parameters || [],
+                    headers: request.headers || [],
+                    assertions: request.assertions || []
                 });
             });
 
+            // 添加结束标记
             scriptContent += this.TEMPLATE_END;
+            
             return scriptContent;
         } catch (error) {
             console.error('生成JMeter脚本失败:', error);
@@ -456,24 +492,27 @@ export class JMeterGenerator {
     private static extractVariables(variables: Variable[]): Array<{ name: string; value: string }> {
         return variables.map(v => ({
             name: v.name,
-            value: v.value
+            value: v.value.startsWith('${') ? v.value : `\${${v.value}}`
         }));
     }
 
     private static processParameters(params: any[], dependencies: Dependency[]): any[] {
-        if (!params) return [];
+        if (!params || !Array.isArray(params)) return [];
 
         return params.map(param => {
-            const dependency = dependencies.find(dep => 
-                dep.params.some(p => p.target.param === param.name)
+            if (!param || !param.name) return param;
+
+            const dependency = dependencies?.find(dep => 
+                dep?.params?.some(p => p?.target?.param === param.name)
             );
 
-            if (dependency) {
-                const depParam = dependency.params.find(p => p.target.param === param.name);
-                if (depParam) {
+            if (dependency?.params) {
+                const depParam = dependency.params.find(p => p?.target?.param === param.name);
+                if (depParam?.source?.param) {
+                    const varName = `${depParam.source.param}_${dependency.sourceApi}_${uuidv4()}`;
                     return {
                         ...param,
-                        value: '${' + depParam.source.param + '_' + dependency.sourceApi + '}'
+                        value: `\${${varName}}`
                     };
                 }
             }

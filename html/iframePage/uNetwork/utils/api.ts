@@ -105,87 +105,92 @@ const SYSTEM_PROMPTS = {
   "scenarioInfo": {
     "apiCount": 0,
     "timestamp": "2024-02-18T10:00:00Z",
-    "description": "场景概述"
+    "description": "场景概述",
+    "baseConfig": {
+      "protocol": "https",
+      "domain": "api.example.com",
+      "port": "443"
+    }
   },
-  "flowAnalysis": {
-    "optimizedOrder": [0, 1, 2],
-    "missingSteps": ["建议添加的步骤"],
-    "criticalPaths": [
-      {
-        "name": "关键路径1",
-        "steps": [0, 1],
-        "description": "路径说明"
-      }
-    ]
-  },
-  "dependencies": [
+  "requests": [
     {
-      "sourceApi": 0,
-      "targetApi": 1,
-      "params": [
+      "name": "接口名称",
+      "path": "/api/path",
+      "method": "POST",
+      "parameters": [
         {
-          "source": {
-            "param": "token",
-            "location": "response",
-            "expression": "$.data.token",
-            "description": "认证令牌"
-          },
-          "target": {
-            "param": "token",
-            "location": "header",
-            "description": "用于认证"
-          }
+          "name": "paramName",
+          "value": "paramValue",
+          "type": "query|body|path",
+          "description": "参数描述"
         }
-      ]
-    }
-  ],
-  "testCoverage": {
-    "assertions": [
-      {
-        "apiIndex": 0,
-        "type": "status",
-        "condition": "equals",
-        "value": "200",
-        "description": "检查响应状态码"
-      }
-    ],
-    "variables": [
-      {
-        "name": "baseUrl",
-        "value": "https://api.example.com",
-        "scope": "global",
-        "description": "API基础地址"
-      }
-    ],
-    "dataPreparation": [
-      {
-        "type": "database",
-        "description": "准备测试数据",
-        "sql": "INSERT INTO users (name, role) VALUES ('test', 'admin')"
-      }
-    ]
-  },
-  "securityChecks": [
-    {
-      "type": "authentication",
-      "apiIndex": 0,
-      "description": "验证认证机制",
-      "testCases": [
-        "测试无效token",
-        "测试过期token"
-      ]
-    }
-  ],
-  "performanceConsiderations": [
-    {
-      "apiIndex": 0,
-      "description": "登录接口性能要求",
-      "thresholds": {
+      ],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "extractors": [
+        {
+          "name": "extractorName",
+          "expression": "$.data.token",
+          "matchNumber": "1",
+          "description": "提取token"
+        }
+      ],
+      "assertions": [
+        {
+          "type": "status|response|header",
+          "value": "200",
+          "description": "状态码检查"
+        }
+      ],
+      "performanceConfig": {
         "responseTime": 1000,
         "throughput": 100
       }
     }
-  ]
+  ],
+  "dependencies": [
+    {
+      "sourceRequest": 0,
+      "targetRequest": 1,
+      "params": [
+        {
+          "sourceParam": "token",
+          "targetParam": "authorization",
+          "location": "header",
+          "extractorType": "json",
+          "extractorExpression": "$.data.token"
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "name": "host",
+      "value": "api.example.com",
+      "description": "服务器地址"
+    },
+    {
+      "name": "port",
+      "value": "443",
+      "description": "服务器端口"
+    },
+    {
+      "name": "protocol",
+      "value": "https",
+      "description": "服务器协议"
+    }
+  ],
+  "testConfig": {
+    "threads": 1,
+    "rampUp": 1,
+    "loops": 1,
+    "duration": 60,
+    "defaultAssertions": true
+  }
 }
 
 注意：JSON数据必须完全符合上述格式，以确保能够正确生成JMeter测试脚本。每个字段都应该基于实际分析结果填写，保持数据的准确性和完整性。`,

@@ -1,9 +1,9 @@
 /* eslint-disable object-curly-spacing */
 /* eslint-disable indent */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 // @ts-ignore
 import { VTablePro } from 'virtualized-table';
-import { Button, Input, Modal, Radio, Space, message } from 'antd';
+import { Button, Input, Modal, Radio, Space, message, Drawer, Tooltip, Switch } from 'antd';
 import {
   BuildFilled,
   FilterOutlined,
@@ -12,7 +12,9 @@ import {
   PlayCircleTwoTone,
   StopOutlined,
   SaveOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  SearchOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import 'antd/dist/antd.css';
 import './App.css';
@@ -24,6 +26,8 @@ import { strToRegExp, getChromeLocalStorage } from './utils/common';
 import { v4 as uuidv4 } from 'uuid';
 import ScenarioAnalysisModal from './components/ScenarioAnalysisModal';
 import { APIUtil } from './utils/api';
+import { JMeterGenerator } from './utils/jmeterGenerator';
+import type { TableRowSelection } from 'antd/es/table/interface';
 
 interface AddInterceptorParams {
     ajaxDataList: AjaxDataListObject[],
@@ -33,15 +37,16 @@ interface AddInterceptorParams {
     responseText: string
 }
 
-interface NetworkEntry {
-  request: {
-    url: string;
-    method: string;
-  };
-  response: {
-    status: string;
-  };
-  time: number;
+interface NetworkRecord {
+    id: string;
+    request: {
+        url: string;
+        method: string;
+    };
+    response: {
+        status: string;
+    };
+    time: number;
 }
 
 interface RequestBodyItem {
@@ -91,6 +96,31 @@ interface RowSelectionConfig {
     onSelect: (record: any, selected: boolean, selectedRows: any[], nativeEvent: Event) => void;
     onSelectAll: (selected: boolean, selectedRows: any[], changeRows: any[]) => void;
     getCheckboxProps: (record: any) => { disabled: boolean; name: string };
+}
+
+interface RequestInfo {
+    url: string;
+    method: string;
+    headers: Array<{ name: string; value: string }>;
+    queryParams?: Array<{ name: string; value: string }>;
+    postData?: {
+        text: string;
+    };
+}
+
+interface RequestRecord {
+    requestInfo: RequestInfo;
+    [key: string]: any;
+}
+
+interface FilteredItem {
+    id: string | number;
+    requestInfo: RequestInfo;
+    [key: string]: any;
+}
+
+interface PostData {
+    [key: string]: unknown;
 }
 
 const aesEncrypt = (text: string, secretKey: string, iv: string): string => {
@@ -230,6 +260,9 @@ export default () => {
     const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
     const [analysisLoading, setAnalysisLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState('');
+    const [filteredData, setFilteredData] = useState<RequestRecord[]>([]);
+    const [dataSource, setDataSource] = useState<RequestRecord[]>([]);
+    const [searchText, setSearchText] = useState('');
 
     const getColumns = ({
                             onAddInterceptorClick,
@@ -324,63 +357,36 @@ export default () => {
     const filteredDataSource = uNetwork
         .filter((v: { request: { url: string; }; }) => v.request.url.match(strToRegExp(filterKey)));
 
-    // 定义行选择功能的配置对象 rowSelection
-    const rowSelection: RowSelectionConfig = {
-        // 设置复选框所在列的宽度为60像素
-        columnWidth: 60,
-
-        // 设置当前选中的行键，与 selectedRowKeys 状态保持同步
+    // 修改行选择配置
+    const rowSelection: TableRowSelection<NetworkRecord> = {
         selectedRowKeys,
-
-        // 指定选择类型为复选框形式
-        type: 'checkbox',
-
-        // onChange 回调会在用户更改选中项时触发，更新 selectedRowKeys 状态并打印变化后的选中信息
-        onChange: (selectedRowKeys: React.Key[], selectedRows: any[]) => {
-            setSelectedRowKeys(selectedRowKeys);
+        onChange: (selectedKeys: React.Key[], selectedRows: NetworkRecord[]) => {
+            setSelectedRowKeys(selectedKeys);
             setSelectedRows(selectedRows);
         },
-
-        // onSelect 回调会在用户单独勾选或取消勾选某一行时触发
-        onSelect: (record: any, selected: boolean, selectedRows: any[], nativeEvent: Event) => {
-            const keys = selected ? 
-                [...selectedRowKeys, record.id] : 
-                selectedRowKeys.filter(key => key !== record.id);
-            setSelectedRowKeys(keys);
-            setSelectedRows(selectedRows);
-        },
-
-        // onSelectAll 回调会在用户全选/反选所有行时触发
-        onSelectAll: (selected: boolean, selectedRows: any[], changeRows: any[]) => {
-            const keys = selected ? 
-                filteredDataSource.map((item: any) => item.id) : 
-                [];
-            setSelectedRowKeys(keys);
-            setSelectedRows(selectedRows);
-        },
-
-        // 获取每一行的key
-        getCheckboxProps: (record: any) => ({
-            disabled: false, // 设置是否禁用复选框
-            name: record.id,
+        getCheckboxProps: (record: NetworkRecord) => ({
+            disabled: false,
+            name: record.request.url,
         }),
     };
     // URL请求记录映射
     const urlRequestMap = new Map<string, { first: any; last: any }>();
 
     const setUNetworkData = function (entry: any) {
-        if (['fetch', 'xhr'].includes(entry._resourceType)) {
+        if (entry) {
+            // 只接受fetch和xhr类型的请求
+            if (entry._resourceType && !['fetch', 'xhr'].includes(entry._resourceType)) {
+                return;
+            }
+
             const url = new URL(entry.request.url);
-            if (!url.pathname.startsWith('/custom') && 
-                !url.pathname.endsWith('.json') && 
-                !url.pathname.endsWith('.png') && 
-                !url.pathname.endsWith('.js') && 
+            if (!url.pathname.endsWith('.js') &&
                 !url.pathname.endsWith('.css')) {
-                
+
                 const contentType = entry.response.headers.find(
                     (header: any) => header.name.toLowerCase() === 'content-type'
                 );
-                
+
                 if (contentType && contentType.value.toLowerCase().includes('text/html')) {
                     return;
                 }
@@ -388,31 +394,20 @@ export default () => {
                 // 为新请求添加唯一ID
                 entry.id = uuidv4();
 
-                // 获取当前URL的请求记录
-                const urlRecord = urlRequestMap.get(entry.request.url);
+                // 更新uNetwork数据
+                setUNetwork(prevNetwork => {
+                    const newNetwork = [...prevNetwork];
+                    newNetwork.push(entry);
+                    return newNetwork;
+                });
 
-                if (!urlRecord) {
-                    // 第一次请求，创建新记录
-                    urlRequestMap.set(entry.request.url, { first: entry, last: entry });
-                    uNetwork.push(entry);
-                } else {
-                    // 更新最后一个请求
-                    const { first } = urlRecord;
-                    
-                    // 从数组中移除之前的最后一个请求（如果存在）
-                    const lastIndex = uNetwork.findIndex(item => 
-                        item.request.url === entry.request.url && item.id !== first.id
-                    );
-                    if (lastIndex !== -1) {
-                        uNetwork.splice(lastIndex, 1);
-                    }
-                    
-                    // 更新记录并添加新的最后一个请求
-                    urlRequestMap.set(entry.request.url, { first, last: entry });
-                    uNetwork.push(entry);
-                }
-
-                setUNetwork([...uNetwork]);
+                // 更新dataSource数据
+                setDataSource(prevData => {
+                    const newData = [...prevData];
+                    newData.push(entry);
+                    setFilteredData(newData);
+                    return newData;
+                });
             }
         }
     };
@@ -458,7 +453,7 @@ export default () => {
         const fetchData = async () => {
             try {
                 const data = await ChromeStorageUtil.getData();
-                const uNetworkList = Array.from(uNetwork as NetworkEntry[]).map((entry: NetworkEntry) => {
+                const uNetworkList = Array.from(uNetwork as NetworkRecord[]).map((entry: NetworkRecord) => {
                     const url = new URL(entry.request.url);
                     return url.pathname;
                 });
@@ -661,10 +656,14 @@ export default () => {
     const clearRecords = () => {
         setUNetwork([]);
         setComparedRows([]);
+        setDataSource([]);  // 清除数据源
+        setFilteredData([]); // 清除过滤后的数据
+        setSelectedRows([]); // 清除选中的行
+        setSelectedRowKeys([]); // 清除选中的行的key
     };
 
     const metersphere_import = () => {
-        const requestBodyList = selectedRows.map((record: NetworkEntry) => {
+        const requestBodyList = selectedRows.map((record: NetworkRecord) => {
             const url = new URL(record.request.url);
             const uuid = uuidv4();
             return {
@@ -717,7 +716,58 @@ export default () => {
 
     const analyzeScenario = async (scenarioData: ScenarioData[]) => {
         try {
-            // 构建场景数据
+            // 构建基础分析数据
+            const baseAnalysis = {
+                scenarioInfo: {
+                    apiCount: scenarioData.length,
+                    timestamp: new Date().toISOString(),
+                    description: "API测试场景",
+                    baseConfig: {
+                        protocol: "https",
+                        domain: new URL(scenarioData[0].requestInfo.url).hostname,
+                        port: "443"
+                    }
+                },
+                requests: scenarioData.map((api, index) => {
+                    const url = new URL(api.requestInfo.url);
+                    return {
+                        name: `${index + 1}_${url.pathname}`,
+                        path: url.pathname,
+                        method: api.requestInfo.method,
+                        parameters: api.requestInfo.queryParams || [],
+                        headers: api.requestInfo.headers,
+                        extractors: [],
+                        assertions: [
+                            {
+                                type: "status",
+                                value: "200",
+                                description: "验证响应状态码"
+                            }
+                        ],
+                        performanceConfig: {
+                            responseTime: 1000,
+                            throughput: 100
+                        }
+                    };
+                }),
+                dependencies: [],
+                variables: [
+                    {
+                        name: "host",
+                        value: new URL(scenarioData[0].requestInfo.url).hostname,
+                        description: "服务器地址"
+                    }
+                ],
+                testConfig: {
+                    threads: 1,
+                    rampUp: 1,
+                    loops: 1,
+                    duration: 60,
+                    defaultAssertions: true
+                }
+            };
+
+            // 调用AI接口获取分析结果
             const analysisData = `
 场景概述：
 - 接口总数：${scenarioData.length}
@@ -732,106 +782,18 @@ ${scenarioData.map((api, index) => {
     - 响应数据：${api.responseData.substring(0, 200)}...`;
 }).join('\n\n')}`;
 
-            // 调用AI接口获取分析结果
+            // 获取AI分析结果
             const aiAnalysis = await APIUtil.sendAIRequest(analysisData, 'scenario_analysis');
             
-            // 如果AI分析成功，直接返回分析结果
-            if (aiAnalysis) {
-                return aiAnalysis;
-            }
+            // 返回Markdown格式的分析报告，包含JSON数据
+            return `# 测试场景分析报告
 
-            // 如果AI分析失败，返回基础分析结果
-            const report = [];
-            
-            // 1. 基本信息概述
-            report.push('# 测试场景分析报告\n');
-            report.push(`## 基本信息\n`);
-            report.push(`- 接口总数：${scenarioData.length}`);
-            report.push(`- 场景创建时间：${new Date().toLocaleString()}\n`);
+${aiAnalysis}
 
-            // 2. 接口调用顺序分析
-            report.push('## 接口调用顺序\n');
-            scenarioData.forEach((api, index) => {
-                const url = new URL(api.requestInfo.url);
-                report.push(`${index + 1}. \`${api.requestInfo.method}\` ${url.pathname}`);
-            });
-            report.push('');
+\`\`\`json
+${JSON.stringify(baseAnalysis, null, 2)}
+\`\`\``;
 
-            // 3. 参数依赖关系分析
-            report.push('## 参数依赖关系分析\n');
-            const parameterMap = new Map();
-            const responseDataMap = new Map();
-
-            // 分析请求参数
-            scenarioData.forEach((api, index) => {
-                const url = new URL(api.requestInfo.url);
-                const queryParams = api.requestInfo.queryParams || [];
-                const postData = api.requestInfo.postData?.text ? JSON.parse(api.requestInfo.postData.text) : {};
-                
-                // 收集请求参数
-                const parameters = [...queryParams, ...Object.entries(postData)];
-                if (parameters.length > 0) {
-                    parameterMap.set(index, parameters);
-                }
-
-                // 收集响应数据
-                try {
-                    const responseJson = JSON.parse(api.responseData);
-                    responseDataMap.set(index, responseJson);
-                } catch (e) {
-                    // 响应不是JSON格式，跳过
-                }
-            });
-
-            // 分析参数依赖
-            report.push('### 参数传递关系\n');
-            parameterMap.forEach((params: any[], apiIndex: number) => {
-                const dependencies: Dependency[] = [];
-                params.forEach((param: [string, any]) => {
-                    // 检查参数值是否来自之前接口的响应
-                    responseDataMap.forEach((response, respIndex) => {
-                        if (respIndex >= apiIndex) return;
-                        
-                        const paramValue = param[1]?.toString() || '';
-                        if (JSON.stringify(response).includes(paramValue)) {
-                            dependencies.push({
-                                from: respIndex,
-                                param: param[0],
-                                value: paramValue
-                            });
-                        }
-                    });
-                });
-
-                if (dependencies.length > 0) {
-                    const url = new URL(scenarioData[apiIndex].requestInfo.url);
-                    report.push(`#### ${apiIndex + 1}. ${url.pathname}\n`);
-                    dependencies.forEach(dep => {
-                        report.push(`- 参数 \`${dep.param}\` 可能依赖于接口 ${dep.from + 1} 的响应数据`);
-                    });
-                    report.push('');
-                }
-            });
-
-            // 4. 测试建议
-            report.push('## 测试建议\n');
-            report.push('### 功能测试建议');
-            report.push('1. 验证所有必填参数的校验逻辑');
-            report.push('2. 测试参数边界值和异常情况');
-            report.push('3. 验证接口之间的数据传递是否正确\n');
-
-            report.push('### 性能测试建议');
-            report.push('1. 建议对关键接口进行并发测试');
-            report.push('2. 监控接口响应时间，建议阈值：');
-            report.push('   - 普通接口：< 1s');
-            report.push('   - 数据处理接口：< 3s\n');
-
-            report.push('### 安全测试建议');
-            report.push('1. 验证接口的访问权限控制');
-            report.push('2. 检查敏感数据的加密传输');
-            report.push('3. 进行必要的 SQL 注入和 XSS 测试\n');
-
-            return report.join('\n');
         } catch (error) {
             console.error('场景分析失败:', error);
             throw error;
@@ -902,8 +864,75 @@ ${scenarioData.map((api, index) => {
     };
 
     const handleDownloadJMeter = () => {
-        // TODO: 实现JMeter脚本下载功能
-        message.info('JMeter脚本下载功能开发中...');
+        try {
+            // 获取分析结果和场景数据
+            if (!analysisResult || !selectedRows.length) {
+                message.error('请先选择请求并进行场景分析');
+                return;
+            }
+
+            // 使用JMeterGenerator生成JMeter脚本
+            const jmeterScript = JMeterGenerator.generateJMeterScript(selectedRows, analysisResult);
+
+            // 创建Blob对象
+            const blob = new Blob([jmeterScript], { type: 'application/xml' });
+            
+            // 创建下载链接
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // 生成文件名：scenario_时间戳.jmx
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            link.download = `scenario_${timestamp}.jmx`;
+            
+            // 触发下载
+            document.body.appendChild(link);
+            link.click();
+            
+            // 清理
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            message.success('JMeter脚本下载成功');
+        } catch (error: unknown) {
+            console.error('生成JMeter脚本失败:', error);
+            const errorMessage = error instanceof Error ? error.message : '未知错误';
+            message.error(`生成JMeter脚本失败: ${errorMessage}`);
+        }
+    };
+
+    const handleSearch = (value: string) => {
+        setSearchText(value);
+        if (!value.trim()) {
+            setFilteredData(dataSource);
+            return;
+        }
+        
+        const filtered = dataSource.filter(item => {
+            const { url, method } = item.requestInfo;
+            return url.toLowerCase().includes(value.toLowerCase()) ||
+                   method.toLowerCase().includes(value.toLowerCase());
+        });
+        setFilteredData(filtered);
+    };
+
+    const processPostData = (data: RequestRecord): Array<{ name: string; value: string }> => {
+        const parameters: Array<{ name: string; value: string }> = [];
+        if (data.requestInfo.postData?.text) {
+            try {
+                const postData = JSON.parse(data.requestInfo.postData.text) as PostData;
+                for (const [key, value] of Object.entries(postData)) {
+                    parameters.push({
+                        name: key,
+                        value: String(value)
+                    });
+                }
+            } catch (e) {
+                console.error('解析POST数据失败:', e);
+            }
+        }
+        return parameters;
     };
 
     return <div className="ajax-tools-devtools">
@@ -955,13 +984,13 @@ ${scenarioData.map((api, index) => {
             <div className="ajax-tools-devtools-header-right">
                 <Input
                     placeholder="Filter"
-                    value={filterKey}
-                    onChange={(e) => setFilterKey(e.target.value)}
+                    value={searchText}
+                    onChange={(e) => handleSearch(e.target.value)}
                 />
             </div>
         </div>
         <VTablePro
-            dataSource={filteredDataSource}
+            dataSource={filteredData.length > 0 ? filteredData : dataSource}
             columns={getColumns({
                 onAddInterceptorClick,
                 onRequestUrlClick
