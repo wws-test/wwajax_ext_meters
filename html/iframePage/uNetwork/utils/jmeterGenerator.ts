@@ -293,7 +293,6 @@ export class JMeterGenerator {
             port = '${port}',
             protocol = '${protocol}',
             parameters = [],
-            headers = [],
             postData,
             assertions = []
         } = config;
@@ -321,36 +320,43 @@ export class JMeterGenerator {
                 <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
                 <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
                 <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
-                <boolProp name="HTTPSampler.BROWSER_COMPATIBLE_MULTIPART">false</boolProp>
                 <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
-                <boolProp name="HTTPSampler.monitor">false</boolProp>
-                <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
             </HTTPSamplerProxy>
             <hashTree>
-                ${this.generateHeaderManager(headers)}
                 ${this.generateAssertions(assertions)}
+                ${this.generateExtractors(config)}
             </hashTree>`;
 
         return samplerXml;
     }
 
-    private static generateHeaderManager(headers: Array<{ name: string; value: string }>): string {
-        if (!headers || headers.length === 0) {
-            return '';
+    private static generateExtractors(config: HTTPSamplerConfig): string {
+        // 分析响应中可能被其他请求使用的参数
+        const extractors: string[] = [];
+        
+        if (config.method.toUpperCase() === 'POST') {
+            // 对于POST请求，提取响应中的id或类似字段
+            extractors.push(`
+                <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="提取响应ID" enabled="true">
+                    <stringProp name="JSONPostProcessor.referenceNames">responseId</stringProp>
+                    <stringProp name="JSONPostProcessor.jsonPathExprs">$.data.id</stringProp>
+                    <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+                    <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
+                </JSONPostProcessor>
+                <hashTree/>`);
         }
 
-        return `
-            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
-                <collectionProp name="HeaderManager.headers">
-                    ${headers.map(header => `
-                        <elementProp name="" elementType="Header">
-                            <stringProp name="Header.name">${header.name}</stringProp>
-                            <stringProp name="Header.value">${header.value}</stringProp>
-                        </elementProp>
-                    `).join('')}
-                </collectionProp>
-            </HeaderManager>
-            <hashTree/>`;
+        // 提取通用的响应数据
+        extractors.push(`
+            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="提取响应码" enabled="true">
+                <stringProp name="JSONPostProcessor.referenceNames">responseCode</stringProp>
+                <stringProp name="JSONPostProcessor.jsonPathExprs">$.code</stringProp>
+                <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
+                <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
+            </JSONPostProcessor>
+            <hashTree/>`);
+
+        return extractors.join('\n');
     }
 
     private static generateAssertions(assertions: Assertion[]): string {

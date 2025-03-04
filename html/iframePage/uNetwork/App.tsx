@@ -716,16 +716,99 @@ export default () => {
 
     const analyzeScenario = async (scenarioData: ScenarioData[]) => {
         try {
+            // 分析参数依赖关系
+            const dependencies: Array<{
+                sourceRequest: number;
+                targetRequest: number;
+                params: Array<{
+                    sourceParam: string;
+                    targetParam: string;
+                    location: string;
+                    extractorType: string;
+                    extractorExpression: string;
+                }>;
+            }> = [];
+
+            // 遍历所有请求，分析参数依赖
+            for (let i = 0; i < scenarioData.length; i++) {
+                const currentRequest = scenarioData[i];
+                
+                // 分析当前请求的响应数据
+                let responseData: any = {};
+                try {
+                    responseData = JSON.parse(currentRequest.responseData);
+                } catch (e) {
+                    console.warn('响应数据解析失败:', e);
+                }
+
+                // 检查后续请求是否使用了当前请求的响应数据
+                for (let j = i + 1; j < scenarioData.length; j++) {
+                    const targetRequest = scenarioData[j];
+                    const dependencyParams: Array<{
+                        sourceParam: string;
+                        targetParam: string;
+                        location: string;
+                        extractorType: string;
+                        extractorExpression: string;
+                    }> = [];
+
+                    // 检查URL参数
+                    if (targetRequest.requestInfo.queryParams) {
+                        targetRequest.requestInfo.queryParams.forEach(param => {
+                            // 检查参数值是否可能来自之前请求的响应
+                            if (responseData.data && responseData.data[param.name]) {
+                                dependencyParams.push({
+                                    sourceParam: param.name,
+                                    targetParam: param.name,
+                                    location: 'query',
+                                    extractorType: 'json',
+                                    extractorExpression: `$.data.${param.name}`
+                                });
+                            }
+                        });
+                    }
+
+                    // 检查POST数据
+                    if (targetRequest.requestInfo.postData?.text) {
+                        try {
+                            const postData = JSON.parse(targetRequest.requestInfo.postData.text);
+                            Object.keys(postData).forEach(key => {
+                                if (responseData.data && responseData.data[key]) {
+                                    dependencyParams.push({
+                                        sourceParam: key,
+                                        targetParam: key,
+                                        location: 'body',
+                                        extractorType: 'json',
+                                        extractorExpression: `$.data.${key}`
+                                    });
+                                }
+                            });
+                        } catch (e) {
+                            console.warn('POST数据解析失败:', e);
+                        }
+                    }
+
+                    // 如果找到依赖关系，添加到dependencies数组
+                    if (dependencyParams.length > 0) {
+                        dependencies.push({
+                            sourceRequest: i,
+                            targetRequest: j,
+                            params: dependencyParams
+                        });
+                    }
+                }
+            }
+
             // 构建基础分析数据
             const baseAnalysis = {
                 scenarioInfo: {
                     apiCount: scenarioData.length,
                     timestamp: new Date().toISOString(),
-                    description: "API测试场景",
+                    description: 'API测试场景',
                     baseConfig: {
-                        protocol: "https",
+                        protocol: 'https',
                         domain: new URL(scenarioData[0].requestInfo.url).hostname,
-                        port: "443"
+                        port: '443'
                     }
                 },
                 requests: scenarioData.map((api, index) => {
@@ -735,13 +818,12 @@ export default () => {
                         path: url.pathname,
                         method: api.requestInfo.method,
                         parameters: api.requestInfo.queryParams || [],
-                        headers: api.requestInfo.headers,
                         extractors: [],
                         assertions: [
                             {
-                                type: "status",
-                                value: "200",
-                                description: "验证响应状态码"
+                                type: 'status',
+                                value: '200',
+                                description: '验证响应状态码'
                             }
                         ],
                         performanceConfig: {
@@ -750,12 +832,12 @@ export default () => {
                         }
                     };
                 }),
-                dependencies: [],
+                dependencies: dependencies,
                 variables: [
                     {
-                        name: "host",
+                        name: 'host',
                         value: new URL(scenarioData[0].requestInfo.url).hostname,
-                        description: "服务器地址"
+                        description: '服务器地址'
                     }
                 ],
                 testConfig: {
@@ -767,28 +849,27 @@ export default () => {
                 }
             };
 
-            // 调用AI接口获取分析结果
-            const analysisData = `
-场景概述：
-- 接口总数：${scenarioData.length}
-- 场景创建时间：${new Date().toLocaleString()}
-
-接口列表：
-${scenarioData.map((api, index) => {
-    const url = new URL(api.requestInfo.url);
-    return `${index + 1}. ${api.requestInfo.method} ${url.pathname}
-    - 请求参数：${JSON.stringify(api.requestInfo.queryParams)}
-    - 请求体：${api.requestInfo.postData?.text || '无'}
-    - 响应数据：${api.responseData.substring(0, 200)}...`;
-}).join('\n\n')}`;
-
-            // 获取AI分析结果
-            const aiAnalysis = await APIUtil.sendAIRequest(analysisData, 'scenario_analysis');
-            
             // 返回Markdown格式的分析报告，包含JSON数据
             return `# 测试场景分析报告
 
-${aiAnalysis}
+## 场景概述
+- 接口总数：${scenarioData.length}
+- 场景创建时间：${new Date().toLocaleString()}
+
+## 接口列表
+${scenarioData.map((api, index) => {
+    const url = new URL(api.requestInfo.url);
+    return `${index + 1}. ${api.requestInfo.method} ${url.pathname}
+    - 请求参数：${JSON.stringify(api.requestInfo.queryParams || [])}
+    - 请求体：${api.requestInfo.postData?.text || '无'}
+    - 响应数据：${api.responseData.substring(0, 200)}...`;
+}).join('\n\n')}
+
+## 参数依赖关系
+${dependencies.length > 0 ? dependencies.map(dep => {
+    return `- 请求${dep.sourceRequest + 1}的响应数据被请求${dep.targetRequest + 1}使用：
+    ${dep.params.map(p => `  - ${p.sourceParam} -> ${p.targetParam} (${p.location})`).join('\n    ')}`;
+}).join('\n') : '未发现明显的参数依赖关系'}
 
 \`\`\`json
 ${JSON.stringify(baseAnalysis, null, 2)}

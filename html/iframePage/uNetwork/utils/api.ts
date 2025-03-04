@@ -125,12 +125,6 @@ const SYSTEM_PROMPTS = {
           "description": "参数描述"
         }
       ],
-      "headers": [
-        {
-          "name": "Content-Type",
-          "value": "application/json"
-        }
-      ],
       "extractors": [
         {
           "name": "extractorName",
