@@ -121,10 +121,13 @@
 
 #### 4. JMeter脚本生成
 - **自动化测试脚本**
-  * 基于保存的场景自动生成
-  * 包含完整的请求配置
-  * 自动处理参数关联
-  * 内置性能测试配置
+  * 基于保存的场景自动生成动态依赖关系
+  <img src="./Pngs/image1.png">
+  * 自动解析参数关联
+  <img src="./Pngs/image.png">
+  * 支持下载 JMeter 脚本
+  <img src="./Pngs/image3.png">
+
 
 
 - **脚本特性**
@@ -216,6 +219,7 @@ return {
 - @image - 生成图片链接
 - @paragraph - 生成段落
 - 更多语法参考 [Mock.js 文档](http://mockjs.com/examples.html)
+
 
 ## 🤝 参与贡献
 
