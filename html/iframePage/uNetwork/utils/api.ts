@@ -74,33 +74,19 @@ const SYSTEM_PROMPTS = {
 请用markdown格式输出，注意条理清晰，要让测试工程师能够清楚理解问题并知道如何进行后续测试。`,
 
   // 场景分析提示词
-  scenario_analysis: `作为一个资深的测试开发工程师，请分析提供的API测试场景。
+  scenario_analysis: `作为一个资深的测试开发工程师，请分析提供的API测试场景 重点分析接口关联信息 特别注意id类字段 。
 
 请从以下几个方面进行分析：
 
 1. 场景流程分析
    - 接口调用顺序是否合理
-   - 是否存在关键步骤缺失
-   - 建议的最优调用顺序
-
 2. 参数依赖关系
-   - 接口间的参数传递
-   - 关键参数的来源和使用
+   - 接口间的参数传递 要特别注意id类字段
    - 潜在的数据关联
+3. 潜在问题和优化建议
+   - 安全风险提示 （简短描述既可）
 
-3. 测试覆盖建议
-   - 功能测试要点
-   - 性能测试考虑
-   - 异常场景覆盖
-   - 安全测试建议
-
-4. 潜在问题和优化建议
-   - 接口设计合理性
-   - 性能优化机会
-   - 安全风险提示
-
-请首先输出一段Markdown格式的分析总结，然后在文档最后附上如下格式的JSON数据：
-
+请首先输出一段Markdown格式的分析总结，然后在文档最后附上如下格式的JSON数据(这只是一段示例，请根据实际情况填写)：
 {
   "scenarioInfo": {
     "apiCount": 0,
@@ -128,22 +114,11 @@ const SYSTEM_PROMPTS = {
       "extractors": [
         {
           "name": "extractorName",
-          "expression": "$.data.token",
+          "expression": "$.data.test",
           "matchNumber": "1",
-          "description": "提取token"
+          "description": "提取test参数"
         }
-      ],
-      "assertions": [
-        {
-          "type": "status|response|header",
-          "value": "200",
-          "description": "状态码检查"
-        }
-      ],
-      "performanceConfig": {
-        "responseTime": 1000,
-        "throughput": 100
-      }
+      ]
     }
   ],
   "dependencies": [

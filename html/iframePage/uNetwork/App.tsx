@@ -39,14 +39,14 @@ interface AddInterceptorParams {
 
 interface NetworkRecord {
     id: string;
-    request: {
-        url: string;
-        method: string;
-    };
-    response: {
-        status: string;
-    };
-    time: number;
+  request: {
+    url: string;
+    method: string;
+  };
+  response: {
+    status: string;
+  };
+  time: number;
 }
 
 interface RequestBodyItem {
@@ -263,6 +263,7 @@ export default () => {
     const [filteredData, setFilteredData] = useState<RequestRecord[]>([]);
     const [dataSource, setDataSource] = useState<RequestRecord[]>([]);
     const [searchText, setSearchText] = useState('');
+    const [isAnalysisOutdated, setIsAnalysisOutdated] = useState(false);
 
     const getColumns = ({
                             onAddInterceptorClick,
@@ -359,14 +360,28 @@ export default () => {
 
     // 修改行选择配置
     const rowSelection: TableRowSelection<NetworkRecord> = {
+        columnWidth: 60,
         selectedRowKeys,
-        onChange: (selectedKeys: React.Key[], selectedRows: NetworkRecord[]) => {
-            setSelectedRowKeys(selectedKeys);
+        type: 'checkbox',
+        onChange: (selectedRowKeys: React.Key[], selectedRows: any[]) => {
+            setSelectedRowKeys(selectedRowKeys);
             setSelectedRows(selectedRows);
+            // 当选择变更时，将分析标记为已过期
+            setIsAnalysisOutdated(true);
+            // 如果当前分析面板是打开的，自动重新触发分析
+            if (analysisModalVisible) {
+                handleSaveTestScenario();
+            }
         },
-        getCheckboxProps: (record: NetworkRecord) => ({
+        onSelect: (record: any, selected: boolean, selectedRows: any[]) => {
+            console.log('选择:', record, selected, selectedRows);
+        },
+        onSelectAll: (selected: boolean, selectedRows: any[], changeRows: any[]) => {
+            console.log('全选:', selected, selectedRows, changeRows);
+        },
+        getCheckboxProps: (record: any) => ({
             disabled: false,
-            name: record.request.url,
+            name: record.url,
         }),
     };
     // URL请求记录映射
@@ -382,11 +397,11 @@ export default () => {
             const url = new URL(entry.request.url);
             if (!url.pathname.endsWith('.js') &&
                 !url.pathname.endsWith('.css')) {
-
+                
                 const contentType = entry.response.headers.find(
                     (header: any) => header.name.toLowerCase() === 'content-type'
                 );
-
+                
                 if (contentType && contentType.value.toLowerCase().includes('text/html')) {
                     return;
                 }
@@ -716,24 +731,28 @@ export default () => {
 
     const analyzeScenario = async (scenarioData: ScenarioData[]) => {
         try {
-            // 分析参数依赖关系
-            const dependencies: Array<{
-                sourceRequest: number;
-                targetRequest: number;
-                params: Array<{
-                    sourceParam: string;
-                    targetParam: string;
-                    location: string;
-                    extractorType: string;
-                    extractorExpression: string;
-                }>;
-            }> = [];
+            // 构建精简的分析数据，但保留必要信息
+            const analysisData = `
+场景概述：
+- 接口总数：${scenarioData.length}
+- 场景创建时间：${new Date().toLocaleString()}
 
-            // 遍历所有请求，分析参数依赖
+接口列表：
+${scenarioData.map((api, index) => {
+    const url = new URL(api.requestInfo.url);
+    return `${index + 1}. ${api.requestInfo.method} ${url.pathname}
+    - 请求参数：${JSON.stringify(api.requestInfo.queryParams || [])}
+    - 请求体：${api.requestInfo.postData?.text || '无'}
+    - 响应数据：${api.responseData.substring(0, 1000)}...`; 
+}).join('\n\n')}`;
+
+            // 获取AI分析结果
+            const aiAnalysis = await APIUtil.sendAIRequest(analysisData, 'scenario_analysis');
+            
+            // 分析参数依赖关系 - 这部分很重要，需要保留
+            const dependencies = [];
             for (let i = 0; i < scenarioData.length; i++) {
                 const currentRequest = scenarioData[i];
-                
-                // 分析当前请求的响应数据
                 let responseData: any = {};
                 try {
                     responseData = JSON.parse(currentRequest.responseData);
@@ -744,53 +763,36 @@ export default () => {
                 // 检查后续请求是否使用了当前请求的响应数据
                 for (let j = i + 1; j < scenarioData.length; j++) {
                     const targetRequest = scenarioData[j];
-                    const dependencyParams: Array<{
-                        sourceParam: string;
-                        targetParam: string;
-                        location: string;
-                        extractorType: string;
-                        extractorExpression: string;
-                    }> = [];
+                    const dependencyParams = [];
 
-                    // 检查URL参数
+                    // 检查URL参数依赖
                     if (targetRequest.requestInfo.queryParams) {
                         targetRequest.requestInfo.queryParams.forEach(param => {
-                            // 检查参数值是否可能来自之前请求的响应
-                            if (responseData.data && responseData.data[param.name]) {
+                            const dependencyPath = checkDependency(responseData, param.name);
+                            if (dependencyPath) {
                                 dependencyParams.push({
                                     sourceParam: param.name,
                                     targetParam: param.name,
                                     location: 'query',
                                     extractorType: 'json',
-                                    extractorExpression: `$.data.${param.name}`
+                                    extractorExpression: `$.${dependencyPath}`
                                 });
                             }
                         });
                     }
 
-                    // 检查POST数据
+                    // 检查POST数据依赖（包括嵌套结构）
                     if (targetRequest.requestInfo.postData?.text) {
-                        try {
-                            const postData = JSON.parse(targetRequest.requestInfo.postData.text);
-                            Object.keys(postData).forEach(key => {
-                                if (responseData.data && responseData.data[key]) {
-                                    dependencyParams.push({
-                                        sourceParam: key,
-                                        targetParam: key,
-                                        location: 'body',
-                                        extractorType: 'json',
-                                        extractorExpression: `$.data.${key}`
-                                    });
-                                }
-                            });
-                        } catch (e) {
-                            console.warn('POST数据解析失败:', e);
-                        }
+                        const postDataDependencies = checkPostDataDependencies(
+                            targetRequest.requestInfo.postData.text,
+                            responseData
+                        );
+                        dependencyParams.push(...postDataDependencies);
                     }
 
                     // 如果找到依赖关系，添加到dependencies数组
                     if (dependencyParams.length > 0) {
-                        dependencies.push({
+                            dependencies.push({
                             sourceRequest: i,
                             targetRequest: j,
                             params: dependencyParams
@@ -818,18 +820,13 @@ export default () => {
                         path: url.pathname,
                         method: api.requestInfo.method,
                         parameters: api.requestInfo.queryParams || [],
-                        extractors: [],
-                        assertions: [
-                            {
-                                type: 'status',
-                                value: '200',
-                                description: '验证响应状态码'
-                            }
-                        ],
-                        performanceConfig: {
-                            responseTime: 1000,
-                            throughput: 100
-                        }
+                        extractors: dependencies
+                            .filter(d => d.sourceRequest === index)
+                            .flatMap(d => d.params.map(p => ({
+                                name: `${p.sourceParam}_${index}`,
+                                expression: p.extractorExpression,
+                                matchNumber: '1'
+                            })))
                     };
                 }),
                 dependencies: dependencies,
@@ -849,32 +846,13 @@ export default () => {
                 }
             };
 
-            // 返回Markdown格式的分析报告，包含JSON数据
             return `# 测试场景分析报告
 
-## 场景概述
-- 接口总数：${scenarioData.length}
-- 场景创建时间：${new Date().toLocaleString()}
+        ${aiAnalysis}
 
-## 接口列表
-${scenarioData.map((api, index) => {
-    const url = new URL(api.requestInfo.url);
-    return `${index + 1}. ${api.requestInfo.method} ${url.pathname}
-    - 请求参数：${JSON.stringify(api.requestInfo.queryParams || [])}
-    - 请求体：${api.requestInfo.postData?.text || '无'}
-    - 响应数据：${api.responseData.substring(0, 200)}...`;
-}).join('\n\n')}
-
-## 参数依赖关系
-${dependencies.length > 0 ? dependencies.map(dep => {
-    return `- 请求${dep.sourceRequest + 1}的响应数据被请求${dep.targetRequest + 1}使用：
-    ${dep.params.map(p => `  - ${p.sourceParam} -> ${p.targetParam} (${p.location})`).join('\n    ')}`;
-}).join('\n') : '未发现明显的参数依赖关系'}
-
-\`\`\`json
-${JSON.stringify(baseAnalysis, null, 2)}
-\`\`\``;
-
+        \`\`\`json
+        ${JSON.stringify(baseAnalysis, null, 2)}
+        \`\`\``;
         } catch (error) {
             console.error('场景分析失败:', error);
             throw error;
@@ -895,8 +873,7 @@ ${JSON.stringify(baseAnalysis, null, 2)}
                     url: record.request.url,
                     method: record.request.method,
                     queryParams: record.request.queryString,
-                    postData: record.request.postData,
-                    headers: record.request.headers
+                    postData: record.request.postData
                 };
 
                 // 提取响应信息
@@ -925,6 +902,7 @@ ${JSON.stringify(baseAnalysis, null, 2)}
             try {
                 const result = await analyzeScenario(scenarioData);
                 setAnalysisResult(result);
+                setIsAnalysisOutdated(false); // 重置过期标记
                 
                 setSavedScenarios(prev => [...prev, {
                     id: uuidv4(),
@@ -1016,6 +994,79 @@ ${JSON.stringify(baseAnalysis, null, 2)}
         return parameters;
     };
 
+    const handleAnalysisModalClose = () => {
+        setAnalysisModalVisible(false);
+        // 不清除分析结果，只关闭modal
+    };
+
+    const checkDependency = (responseData: any, paramName: string): string | null => {
+        // 递归检查对象中是否存在指定参数
+        const findParam = (obj: any, path: string = ''): string | null => {
+            if (!obj || typeof obj !== 'object') return null;
+            
+            for (const [key, value] of Object.entries(obj)) {
+                const currentPath = path ? `${path}.${key}` : key;
+                
+                // 检查当前键是否匹配
+                if (key === paramName) {
+                    return currentPath;
+                }
+                
+                // 递归检查嵌套对象
+                if (typeof value === 'object') {
+                    const result = findParam(value, currentPath);
+                    if (result) return result;
+                }
+            }
+            return null;
+        };
+
+        return findParam(responseData);
+    };
+
+    // 检查POST数据依赖（支持嵌套结构）
+    const checkPostDataDependencies = (postData: any, responseData: any): Array<{
+        sourceParam: string;
+        targetParam: string;
+        location: string;
+        extractorType: string;
+        extractorExpression: string;
+    }> => {
+        const dependencies = [];
+        
+        const processObject = (obj: any) => {
+            if (!obj || typeof obj !== 'object') return;
+            
+            for (const [key, value] of Object.entries(obj)) {
+                // 检查当前字段是否存在依赖
+                const dependencyPath = checkDependency(responseData, key);
+                if (dependencyPath) {
+                    dependencies.push({
+                        sourceParam: key,
+                        targetParam: key,
+                        location: 'body',
+                        extractorType: 'json',
+                        extractorExpression: `$.${dependencyPath}`
+                    });
+                }
+                
+                // 递归处理嵌套对象
+                if (value && typeof value === 'object') {
+                    processObject(value);
+                }
+            }
+        };
+
+        try {
+            const data = typeof postData === 'string' ? JSON.parse(postData) : postData;
+            processObject(data);
+        } catch (e) {
+            console.warn('POST数据解析失败:', e);
+        }
+
+        return dependencies;
+    };
+
     return <div className="ajax-tools-devtools">
         <div className="ajax-tools-devtools-header">
             <div className="ajax-tools-devtools-header-left">
@@ -1090,9 +1141,12 @@ ${JSON.stringify(baseAnalysis, null, 2)}
         }
         <ScenarioAnalysisModal
             visible={analysisModalVisible}
-            onClose={() => setAnalysisModalVisible(false)}
+            onClose={handleAnalysisModalClose}
             loading={analysisLoading}
             analysisResult={analysisResult}
+            scenarioData={selectedRows}
+            onGenerateJMeterScript={handleDownloadJMeter}
+            isAnalysisOutdated={isAnalysisOutdated}
         />
     </div>;
 };

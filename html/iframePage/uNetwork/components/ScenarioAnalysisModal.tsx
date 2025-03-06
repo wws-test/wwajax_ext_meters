@@ -12,6 +12,7 @@ interface ScenarioAnalysisModalProps {
     analysisResult: string;
     scenarioData?: any[];
     onGenerateJMeterScript?: () => void;
+    isAnalysisOutdated?: boolean;
 }
 
 const ScenarioAnalysisModal: React.FC<ScenarioAnalysisModalProps> = ({
@@ -20,7 +21,8 @@ const ScenarioAnalysisModal: React.FC<ScenarioAnalysisModalProps> = ({
     loading,
     analysisResult,
     scenarioData,
-    onGenerateJMeterScript
+    onGenerateJMeterScript,
+    isAnalysisOutdated
 }) => {
     const handleCopy = async () => {
         try {
@@ -48,12 +50,25 @@ const ScenarioAnalysisModal: React.FC<ScenarioAnalysisModalProps> = ({
                     </div>
                 ) : (
                     <div className="analysis-result">
+                        {isAnalysisOutdated && (
+                            <div className="analysis-warning" style={{
+                                padding: '8px 12px',
+                                marginBottom: '16px',
+                                background: '#fffbe6',
+                                border: '1px solid #ffe58f',
+                                borderRadius: '4px'
+                            }}>
+                                <span style={{ color: '#faad14', marginRight: '8px' }}>⚠️</span>
+                                当前分析结果已过期，正在重新分析...
+                            </div>
+                        )}
                         <div className="analysis-actions">
                             <Space>
                                 <Button 
                                     type="primary" 
                                     icon={<CopyOutlined />}
                                     onClick={handleCopy}
+                                    disabled={isAnalysisOutdated}
                                 >
                                     复制分析结果
                                 </Button>
@@ -62,6 +77,7 @@ const ScenarioAnalysisModal: React.FC<ScenarioAnalysisModalProps> = ({
                                         type="primary"
                                         icon={<DownloadOutlined />}
                                         onClick={onGenerateJMeterScript}
+                                        disabled={isAnalysisOutdated}
                                     >
                                         生成JMeter脚本
                                     </Button>

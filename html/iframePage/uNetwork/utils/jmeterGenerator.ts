@@ -213,6 +213,7 @@ interface HTTPSamplerConfig {
     assertions: Assertion[];
     performanceConfig?: PerformanceConsideration;
     apiIndex?: number;
+    extractors: Extractor[];
 }
 
 export class JMeterGenerator {
@@ -294,8 +295,11 @@ export class JMeterGenerator {
             protocol = '${protocol}',
             parameters = [],
             postData,
-            assertions = []
+            assertions = [],
+            extractors
         } = config;
+
+        const safePath = path || '/';
 
         const samplerXml = `
             <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="${name}" enabled="true">
@@ -311,16 +315,14 @@ export class JMeterGenerator {
                         ` : ''}
                     </collectionProp>
                 </elementProp>
-                <stringProp name="HTTPSampler.domain">${domain}</stringProp>
-                <stringProp name="HTTPSampler.port">${port}</stringProp>
-                <stringProp name="HTTPSampler.protocol">${protocol}</stringProp>
-                <stringProp name="HTTPSampler.path">${path}</stringProp>
                 <stringProp name="HTTPSampler.method">${method}</stringProp>
+                <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
                 <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
                 <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
                 <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
                 <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
                 <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+                <stringProp name="HTTPSampler.path">${safePath}</stringProp>
             </HTTPSamplerProxy>
             <hashTree>
                 ${this.generateAssertions(assertions)}
@@ -331,30 +333,21 @@ export class JMeterGenerator {
     }
 
     private static generateExtractors(config: HTTPSamplerConfig): string {
-        // 分析响应中可能被其他请求使用的参数
         const extractors: string[] = [];
         
-        if (config.method.toUpperCase() === 'POST') {
-            // 对于POST请求，提取响应中的id或类似字段
-            extractors.push(`
-                <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="提取响应ID" enabled="true">
-                    <stringProp name="JSONPostProcessor.referenceNames">responseId</stringProp>
-                    <stringProp name="JSONPostProcessor.jsonPathExprs">$.data.id</stringProp>
-                    <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
-                    <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
-                </JSONPostProcessor>
-                <hashTree/>`);
+        // 使用配置中的提取器定义
+        if (config.extractors && config.extractors.length > 0) {
+            config.extractors.forEach(extractor => {
+                extractors.push(`
+                    <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="${extractor.name || '提取响应参数'}" enabled="true">
+                        <stringProp name="JSONPostProcessor.referenceNames">${extractor.name}</stringProp>
+                        <stringProp name="JSONPostProcessor.jsonPathExprs">${extractor.expression}</stringProp>
+                        <stringProp name="JSONPostProcessor.match_numbers">${extractor.matchNumber || '1'}</stringProp>
+                        <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
+                    </JSONPostProcessor>
+                    <hashTree/>`);
+            });
         }
-
-        // 提取通用的响应数据
-        extractors.push(`
-            <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="提取响应码" enabled="true">
-                <stringProp name="JSONPostProcessor.referenceNames">responseCode</stringProp>
-                <stringProp name="JSONPostProcessor.jsonPathExprs">$.code</stringProp>
-                <stringProp name="JSONPostProcessor.match_numbers">1</stringProp>
-                <stringProp name="JSONPostProcessor.defaultValues">NOT_FOUND</stringProp>
-            </JSONPostProcessor>
-            <hashTree/>`);
 
         return extractors.join('\n');
     }
@@ -412,7 +405,8 @@ export class JMeterGenerator {
             }
 
             const analysis = JSON.parse(jsonMatch[1]);
-            
+            console.log('Parsed analysis:', analysis);
+
             // 生成脚本内容
             let scriptContent = this.TEMPLATE_START;
 
@@ -425,13 +419,18 @@ export class JMeterGenerator {
 
             // 添加请求配置
             analysis.requests.forEach((request: any, index: number) => {
+                const requestPath = request.path || new URL(scenarioData[index].request.url).pathname;
+                
+                // 使用分析结果中的提取器配置
                 scriptContent += this.generateHTTPSamplerConfig({
-                    name: request.name,
-                    path: request.path,
-                    method: request.method,
+                    name: request.name || `Request_${index + 1}`,
+                    path: requestPath,
+                    method: request.method || scenarioData[index].request.method,
                     parameters: request.parameters || [],
                     headers: request.headers || [],
-                    assertions: request.assertions || []
+                    extractors: request.extractors || [], // 使用分析结果中的提取器配置
+                    assertions: request.assertions || [],
+                    postData: request.postData?.text || scenarioData[index].request.postData?.text
                 });
             });
 
